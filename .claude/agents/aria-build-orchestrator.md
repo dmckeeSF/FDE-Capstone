@@ -95,100 +95,92 @@ git push
 
 ## Sub-Agent Specs
 
-### TASK-BACKUP
-Ask approval first. Then launch `adlc-engineer`:
-> Create a git branch `backup/pre-build-YYYYMMDD`, retrieve ALL current metadata from FdeCap org into `backup/metadata/` using `sf project retrieve start`, export Account/Contact/Case/User data to CSV in `backup/data/`, commit and push, tag the commit `backup/pre-build-YYYYMMDD`. Report what was backed up.
+> **Full task specs live in lazy-loaded refs/ files** — read the relevant file before launching each agent.
+> All three sub-agent types (`adlc-engineer`, `adlc-author`, `adlc-qa`) are confirmed available in this environment.
+> Before launching any sub-agent, verify the agent type is still listed in the session's available agents.
 
-### TASK-D0
-Launch `adlc-engineer`:
-> In FdeCap org: (1) verify Salesforce Knowledge is enabled — if not, enable it via Setup; (2) verify Einstein Search Grounding is enabled in Setup > Einstein > Search — if not, enable it. Report the final state of both settings.
+| Phase | Tasks | Ref File | Agent Type |
+|---|---|---|---|
+| Safety | TASK-BACKUP, TASK-D0 | `.claude/agents/refs/tasks-safety.md` | `adlc-engineer` |
+| Phase 1 | TASK-D1, TASK-Z1 | `.claude/agents/refs/tasks-phase1.md` | `adlc-engineer` |
+| Phase 2 | TASK-D2, TASK-D3, TASK-D4 | `.claude/agents/refs/tasks-phase2.md` | `adlc-engineer` |
+| Phase 3 | TASK-D5–D9 | `.claude/agents/refs/tasks-phase3.md` | `adlc-author` |
+| Phase 4 | TASK-D11, TASK-D12, TASK-D14 | `.claude/agents/refs/tasks-phase4.md` | `adlc-engineer` |
+| Phase 5 | TASK-D13 | `.claude/agents/refs/tasks-phase5.md` | `adlc-engineer` |
+| Knowledge | TASK-A1, TASK-A2 | `.claude/agents/refs/tasks-knowledge.md` | general-purpose |
+| Testing | TASK-T1–T3, TASK-DEMO | `.claude/agents/refs/tasks-testing.md` | `adlc-qa` |
 
-### TASK-D1
-Launch `adlc-engineer` with the full object/field spec from `.claude/docs/build-plan.md` (Data Model Specification section). Deploy:
-- Account Record Type (Restaurant) with custom fields
-- Reservation__c junction object with both Master-Detail relationships
-- Case custom fields (Reservation__c lookup, Conversation_Transcript__c, Issue_Classification__c)
-- Contact custom fields (Membership_Number__c, Loyalty_Tier__c, Dietary_Preferences__c, Preferred_Cuisine__c)
-- Aria_Agent_Access Permission Set
-- **MessagingSession custom fields** (required for context variables): ContactId__c (Text 18), MembershipNumber__c (Text 20), IsAuthenticated__c (Checkbox), LoyaltyTier__c (Text 20), BookingReference__c (Text 20)
-- **Build_Task__c** custom object: Name (Text), Status__c (Picklist: Pending/In Progress/Ready for Review/Done/Failed), Owner__c (Text), Notes__c (Long Text), Completed_At__c (DateTime)
+**To launch a task:**
+1. Read the corresponding refs/ file
+2. Copy the task's full spec as the sub-agent prompt
+3. Ask Destiny for approval (Human Approval Gate), then launch
 
-Deploy all to FdeCap.
+---
 
-### TASK-Z1 (AI generates, Zach reviews)
-Launch `adlc-engineer`:
-> Using sf CLI, create the following records in FdeCap org: 5 Account records (Record Type: Restaurant) with realistic restaurant names, addresses, cuisine types, operating hours, cancellation policies; 10 Contact records as diners including Sofia Rodriguez (Email: sofiarodriguez@example.com, Membership_Number__c: 10008155, Loyalty_Tier__c: Gold); 20 Reservation__c records linking contacts to restaurants with a realistic mix of Confirmed (10), Modified (5), and Cancelled (5) statuses. Use dynamic queries for all IDs. No hardcoded record IDs.
+## Requirement Intake & Skill Update Flow
 
-After completion, send Slack notification to Zach and mark `Ready for Review`.
+When Adam or Zach submits a new requirement (via Slack or directly to Destiny), follow this sequence in exact order — **git push before Salesforce**.
 
-### TASK-A1 (AI drafts, Adam reviews)
-Launch general-purpose agent:
-> Draft and deploy 5 Salesforce Knowledge articles to FdeCap org: (1) Cancellation Policy, (2) How to Modify a Reservation, (3) Accessibility Information, (4) Booking FAQ, (5) Platform Terms Summary. Each: plain language, concise, IsVisibleInCsp=true, tagged for Einstein Search Grounding. Use sf CLI to create Knowledge records.
+### Step 1 — Validate
+Before writing anything, evaluate the requirement:
+- Is it in scope? (booking management, restaurant info, FAQ, escalation, data model, Knowledge)
+- Does it conflict with an existing task?
+- Which phase and refs/ file does it belong to?
+- Does it add a new dependency to the task graph?
+- Is TASK-BACKUP already done? (if not, flag before adding new org changes)
 
-After completion, send Slack notification to Adam and mark `Ready for Review`.
+If out of scope or conflicting, surface the issue to Destiny and wait for a "yes" before proceeding.
 
-### TASK-D2
-Launch `adlc-engineer`:
-> Create Apex class `ReservationMockApiController` with `@RestResource(urlMapping='/reservations/*')`. Implement: GET returns Reservation__c JSON by Booking_Reference__c; PATCH updates date/time/partySize; DELETE sets Status__c=Cancelled. Response shape: {id, bookingReference, status, restaurantName, dinerName, date, time, partySize}. Include test class with 90%+ coverage. Deploy to FdeCap.
+### Step 2 — Draft the task spec
+Assign the next available task ID (e.g., TASK-D10, TASK-Z2, TASK-A3). Draft the full spec. Show Destiny and the submitter for approval before writing any files.
 
-### TASK-D3
-Launch `adlc-engineer`:
-> Create External Credential `Reservation_API_Ext_Cred` (No Auth). Create Named Credential `Reservation_API` pointing to FdeCap org domain + /services/apexrest. Create 3 HTTP Callout Actions: GetReservationDetails (GET), ModifyReservation (PATCH), CancelReservation (DELETE). Deploy to FdeCap.
-
-### TASK-D4
-Launch `adlc-engineer`:
-> Create 3 @InvocableMethod Apex classes (GetReservationAction, ModifyReservationAction, CancelReservationAction) and corresponding Autolaunched Flows. Each Flow: calls Named Credential, handles response, includes fault path that creates a Case (Priority=High, Issue_Classification__c populated) and returns error message. Include test classes 90%+ coverage. Deploy to FdeCap.
-
-### TASK-D5
-Launch `adlc-author`:
-> Create Agentforce agent in FdeCap: Name=Aria, Type=ASA Live, Einstein Trust Layer enabled (zero data retention, PII masking), Opening message: "Hi! I'm Aria, your dining assistant. I can help you modify or cancel a reservation, look up restaurant details, or answer questions about your booking. How can I help?" Assign Permission Set Aria_Agent_Access.
->
-> Also create the Omni-Channel Flow for context variable mapping: fires on MessagingSession creation, reads the authenticated Experience Cloud Contact record using the session's ContactId, maps ContactId to ContactId__c, Email to MembershipNumber__c lookup, IsAuthenticated__c = true if Contact found, LoyaltyTier__c from Contact.Loyalty_Tier__c, BookingReference__c from any URL parameter passed via the chat widget.
->
-> Configure Booking Management topic filter: `{!$Context.IsAuthenticated__c}` must be true. If false, agent responds: "Please log in to your account to manage your reservation." Pre-fill Booking Reference slot from `{!$Context.BookingReference__c}` when present. Pass `{!$Context.ContactId__c}` to all booking actions — never ask the diner to identify themselves.
->
-> Public topics (Restaurant Information, Platform FAQ) have no authentication filter.
-
-### TASK-D6 through TASK-D9
-Launch `adlc-author` with topics spec from `.claude/docs/build-plan.md` (PHASE 3 section). Covers Booking Management, Restaurant Information, Platform FAQ, Escalation topics, all guardrail nodes, all escalation triggers.
-
-### TASK-D11
-Launch `adlc-engineer`:
-> Create Experience Cloud site in FdeCap using Customer Service template. Embed Agentforce chat (Aria). Authenticated access for Contact-based Community users. Guest User Profile: Read on Account (Restaurant RT) and Knowledge. Public topics: Restaurant Information, Platform FAQ. Deploy and publish.
-
-### TASK-D12 (Omni-Channel with auto Slack fallback)
-Launch `adlc-engineer`:
-> Attempt to configure Omni-Channel in FdeCap: Service Console app, Diner Support queue, routing config, presence status. If deployment succeeds, mark done. If any step fails, automatically configure the Slack fallback instead: create an Autolaunched Flow triggered by agent escalation that posts to Slack channel C0C82MYADGW with diner name, Reservation__c link, conversation transcript, and recommended next action. Report which path was taken.
-
-### TASK-D13
-Launch `adlc-engineer`:
-> Phase 1 Data Cloud setup in FdeCap: enable Data Cloud, create Data Stream from Contact (Unified Individual DMO — fields: Id, FirstName, LastName, Email, Membership_Number__c, Loyalty_Tier__c), create Data Stream from Reservation__c (custom DMO Unified_Reservation — fields: Id, Booking_Reference__c, Status__c, Reservation_Date__c, Party_Size__c, Account lookup, Contact lookup), configure Identity Resolution on Email + Membership_Number__c, surface as read-only grounding for Aria. No activation segments.
-
-### TASK-D14
-After D11 and Z1 both Done:
+### Step 3 — Update skill files (git-first)
+1. Append the task spec to the appropriate refs/ file
+2. Add the new task row to the Task Registry table in `aria-build-orchestrator.md`
+3. Stage, commit, and push:
 ```bash
-PROFILE_ID=$(sf data query --query "SELECT Id FROM Profile WHERE Name='Customer Community User'" --target-org FdeCap --json | jq -r '.result.records[0].Id')
-CONTACT_ID=$(sf data query --query "SELECT Id FROM Contact WHERE Email='sofiarodriguez@example.com'" --target-org FdeCap --json | jq -r '.result.records[0].Id')
-sf data create record --sobject User \
-  --values "FirstName='Sofia' LastName='Rodriguez' Username='sofiarodriguez@fdecapstone.com.demo' Email='sofiarodriguez@example.com' Alias='srodrig' CommunityNickname='sofia_diner' ProfileId='$PROFILE_ID' ContactId='$CONTACT_ID' TimeZoneSidKey='America/Los_Angeles' LocaleSidKey='en_US' EmailEncodingKey='UTF-8' LanguageLocaleKey='en_US'" \
+git add .claude/agents/
+git commit -m "feat: add [TASK-ID] — [short description]
+
+Requested by: [Adam/Zach]
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+git push origin main
+```
+
+**If push fails (collision):**
+```bash
+git pull --rebase origin main
+```
+If the rebase introduces conflicts in a refs/ file: read both versions, keep both task specs, renumber any colliding task IDs (e.g., both added TASK-D10 → rename one to TASK-D10a / TASK-D10b and flag for Destiny to resolve). Then:
+```bash
+git push origin main
+```
+Do not proceed to Step 4 until the push succeeds.
+
+### Step 4 — Create or update Salesforce task record
+Only after the push succeeds. Use `upsert` (not `create`) — safe to re-run if interrupted:
+```bash
+sf data upsert record \
+  --sobject Build_Task__c \
+  --external-id Name \
+  --values "Name='[TASK-ID]' Status__c='Pending' Owner__c='[owner]' Notes__c='[description]'" \
   --target-org FdeCap
 ```
 
-### TASK-A2 (AI drafts, Adam reviews)
-Launch general-purpose agent:
-> Review the FDE Capstone build brief at `.claude/docs/build-plan.md`. Draft: (1) CTO Q&A responses for "Why Agentforce over a cheaper chatbot?" and "What is the ROI timeline?"; (2) a rubric gap analysis against the 6 capstone evaluation areas (target Level 3+); (3) suggested slide copy fixes for any gaps found. Save output to `.claude/docs/adam-review-draft.md`.
+**If Salesforce upsert fails:**
+- The skill is already committed and pushed — git state is safe and authoritative
+- Retry the upsert in the next org-connected session
+- Leave a note in the git commit message: `Salesforce upsert pending — [TASK-ID]` so the next session knows to retry
 
-After completion, send Slack notification to Adam and mark `Ready for Review`.
-
-### TASK-T1–T3
-Launch `adlc-qa`:
-> Run the full Aria test suite against FdeCap org. Cover all 6 categories from `.claude/docs/build-plan.md` (PHASE 7): functional, edge, multi-turn, perturbation, adversarial, guardrail. Report pass/fail per test case. Save report to `.claude/docs/test-results.md`.
-
-After completion, send Slack notification to all three team members for sign-off.
-
-### TASK-DEMO (pre-demo dry run)
-Launch `adlc-qa`:
-> Run the full Aria demo script end-to-end in FdeCap org as Sofia Rodriguez: (1) open Experience Cloud site, (2) initiate chat, (3) modify a reservation, (4) ask about cancellation policy, (5) trigger escalation. Report pass/fail for each step and any issues to fix before the live demo.
+### Step 5 — Notify
+Post to Slack channel `C0C82MYADGW`:
+```
+New requirement added: [TASK-ID]
+Requested by: [Adam/Zach]
+What: [one sentence]
+Depends on: [task IDs or "none"]
+Status: Pending
+```
 
 ---
 
