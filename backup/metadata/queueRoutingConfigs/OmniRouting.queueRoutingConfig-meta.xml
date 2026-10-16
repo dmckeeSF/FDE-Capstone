@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QueueRoutingConfig xmlns="http://soap.sforce.com/2006/04/metadata">
+    <capacityWeight>100.0</capacityWeight>
+    <isAttributeBased>false</isAttributeBased>
+    <label>OmniRouting</label>
+    <routingModel>MOST_AVAILABLE</routingModel>
+    <routingPriority>1</routingPriority>
+    <userOverflowAssignee>dmckee@fdecapstone.com.161026</userOverflowAssignee>
+</QueueRoutingConfig>
