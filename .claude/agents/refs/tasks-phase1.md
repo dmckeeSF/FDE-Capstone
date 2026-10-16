@@ -10,7 +10,9 @@ Launch `adlc-engineer`:
 > - Case custom fields: Reservation__c (Lookup to Reservation__c), Conversation_Transcript__c (Long Text), Issue_Classification__c (Picklist: Booking Issue/Policy Question/Complaint/Other)
 > - MessagingSession custom fields: ContactId__c (Text 18), MembershipNumber__c (Text 20), IsAuthenticated__c (Checkbox), LoyaltyTier__c (Text 20), BookingReference__c (Text 20)
 > - Build_Task__c custom object: Name (Text), Status__c (Picklist: Pending/In Progress/Ready for Review/Done/Failed), Owner__c (Text), Notes__c (Long Text), Completed_At__c (DateTime)
-> - Permission Set Aria_Agent_Access: Read on Account/Contact/Reservation__c/Knowledge; Create+Edit on Case; Edit Status__c/Cancelled_At__c/Modified_At__c/Original_Reservation_Date__c on Reservation__c
+> - Build_Task__c Tab: create a custom tab (list view style, default on) so the object is accessible from the App Launcher and navigation bar
+> - Build_Task__c List Views: create two list views — "All Tasks" (all records, columns: Name, Status__c, Owner__c, Notes__c, Completed_At__c, sorted by CreatedDate ASC) and "My Tasks" (filtered by Owner__c = current user's name, same columns). Make both list views visible to all users.
+> - Permission Set Aria_Agent_Access: Read on Account/Contact/Reservation__c/Knowledge; Create+Edit on Case; Edit Status__c/Cancelled_At__c/Modified_At__c/Original_Reservation_Date__c on Reservation__c; Read on Build_Task__c (so all team members can view task state)
 
 ## TASK-Z1 (AI generates, Zach reviews)
 Launch `adlc-engineer`:
