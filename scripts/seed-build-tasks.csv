@@ -1,0 +1,21 @@
+Name,Status__c,Owner__c,Notes__c,Completed_At__c
+TASK-BACKUP,Done,Destiny,Pre-build backup complete. Branch: backup/pre-build-20261016. Commit: 52c547e.,2026-10-16T00:00:00.000Z
+TASK-D1,Done,Destiny,Full data model deployed. 43 components. Commit: adbf5bf.,2026-10-16T00:00:00.000Z
+TASK-D0,Pending,Destiny,Enable Knowledge and Einstein Search Grounding. Depends on: TASK-BACKUP.,
+TASK-Z1,Pending,Zach,AI generates mock data (restaurants/diners/reservations). Zach reviews. Depends on: TASK-D1.,
+TASK-D2,Pending,Destiny,ReservationMockApiController Apex REST class (GET/PATCH/DELETE). Depends on: TASK-D1.,
+TASK-D3,Pending,Destiny,Named Credential + External Credential + 3 HTTP Callout Actions. Depends on: TASK-D2.,
+TASK-D4,Pending,Destiny,3 Flow-invocable Apex actions with fault paths. Depends on: TASK-D3.,
+TASK-D5,Pending,Destiny,Create Aria agent + Omni-Channel context variable Flow. Depends on: TASK-D4.,
+TASK-D6,Pending,Destiny,Booking Management topic. Depends on: TASK-D5.,
+TASK-D7,Pending,Destiny,Restaurant Information topic. Depends on: TASK-D5.,
+TASK-D8,Pending,Destiny,Platform FAQ topic + Einstein Search Grounding. Depends on: TASK-D5 + TASK-A1.,
+TASK-D9,Pending,Destiny,Escalation topic + guardrail nodes. Depends on: TASK-D5.,
+TASK-D11,Pending,Destiny,Experience Cloud site + embedded Aria chat. Depends on: TASK-D5.,
+TASK-D12,Pending,Destiny,Omni-Channel config with auto Slack fallback. Depends on: TASK-D5.,
+TASK-D13,Pending,Destiny,Data Cloud Phase 1 read-only grounding. Parallel track (depends on: TASK-BACKUP).,
+TASK-D14,Pending,Destiny,Create Sofia Rodriguez Experience Cloud community user. Depends on: TASK-D11 + TASK-Z1.,
+TASK-A1,Pending,Adam,AI drafts 5 Knowledge articles. Adam reviews. Depends on: TASK-D0.,
+TASK-A2,Pending,Adam,CTO Q&A prep + rubric gap analysis. Adam reviews. Depends on: TASK-D6 through TASK-D9.,
+TASK-T1,Pending,Destiny,Full test suite (functional/edge/multi-turn/perturbation/adversarial/guardrail). Depends on: TASK-D6-D9 + TASK-Z1 + TASK-A1.,
+TASK-DEMO,Pending,Destiny,Pre-demo dry run as Sofia Rodriguez end-to-end. Depends on: TASK-T1.,
