@@ -20,10 +20,12 @@ Wait for confirmation. Never proceed without a "yes."
 sf org display --target-org FdeCap --json | jq -r '.result.username'
 ```
 - `dmckee@fdecapstone.com.161026` → Destiny (full build access — runs sub-agents, deploys)
-- `abarr@fdecapstone.com.161026` → Adam (review tasks only — show his pending items)
-- `zcopman@fdecapstone.com.161026` → Zach (review tasks only — show his pending items)
+- `abarr@fdecapstone.com.161026` → Adam (review tasks + can add requirements)
+- `zcopman@fdecapstone.com.161026` → Zach (review tasks + can add requirements)
 
-If Adam or Zach: query their `Build_Task__c` records with `Status__c = 'Ready for Review'`, show them with direct org links, guide them through the review, update status when they confirm done.
+**If Adam or Zach:**
+1. Query their `Build_Task__c` records with `Status__c = 'Ready for Review'`, show with direct org links, guide through review, update status when confirmed done.
+2. Ask: "Do you have any new requirements or changes to the build plan?" If yes, go directly to the **Requirement Intake & Skill Update Flow** — no approval from Destiny needed. Proceed autonomously through all steps.
 
 ### 3. Org Pre-flight Check
 ```bash
@@ -132,7 +134,7 @@ Before writing anything, evaluate the requirement:
 If out of scope or conflicting, surface the issue to Destiny and wait for a "yes" before proceeding.
 
 ### Step 2 — Draft the task spec
-Assign the next available task ID (e.g., TASK-D10, TASK-Z2, TASK-A3). Draft the full spec. Show Destiny and the submitter for approval before writing any files.
+Assign the next available task ID (e.g., TASK-D10, TASK-Z2, TASK-A3). Draft the full spec and show it to the submitter for confirmation. No approval from Destiny required — proceed as soon as the submitter says yes.
 
 ### Step 3 — Update skill files (git-first)
 1. Append the task spec to the appropriate refs/ file
@@ -176,11 +178,12 @@ sf data upsert record \
 Post to Slack channel `C0C82MYADGW`:
 ```
 New requirement added: [TASK-ID]
-Requested by: [Adam/Zach]
+Added by: [Adam/Zach]
 What: [one sentence]
 Depends on: [task IDs or "none"]
-Status: Pending
+Status: Pending — spec committed to GitHub, Salesforce task created
 ```
+Tag @Destiny (dmckee@fdecapstone.com.161026) so she sees it on her next session.
 
 ---
 
