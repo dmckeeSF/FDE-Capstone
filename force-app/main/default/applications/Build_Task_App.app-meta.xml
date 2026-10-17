@@ -2,12 +2,13 @@
 <CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
     <defaultLandingTab>Build_Task__c</defaultLandingTab>
     <description>Build orchestration app for the Aria capstone. Tracks all build tasks, statuses, and owners.</description>
+    <formFactors>Small</formFactors>
+    <formFactors>Large</formFactors>
     <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
     <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
     <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
+    <isOmniPinnedViewEnabled>false</isOmniPinnedViewEnabled>
     <label>Aria Build Tracker</label>
-    <formFactors>Large</formFactors>
-    <formFactors>Small</formFactors>
     <navType>Standard</navType>
     <tabs>standard-home</tabs>
     <tabs>Build_Task__c</tabs>
