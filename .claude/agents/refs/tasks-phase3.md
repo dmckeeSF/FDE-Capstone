@@ -11,11 +11,14 @@ Launch `adlc-author`:
 ### Permission Set Steps (TASK-D5)
 After agent and Omni-Channel Flow deploy:
 
-> **Platform Note:** Agentforce bot users (UserType='Standard', username matches `agentforce_service_agent*`) have a special license that **blocks standard permission set assignment via CLI**. Do NOT attempt `sf org assign permset` on the bot user — it will fail with "user license doesn't match".
+> **Platform architecture — Einstein Agent license:**
+> The Agentforce bot user (`agentforce_service_agent*`) has an **"Einstein Agent"** user license. This license type **cannot have permission sets assigned** — not via CLI, not via Apex DML, not via the UI. This is enforced at the Salesforce platform level (FIELD_INTEGRITY_EXCEPTION).
 >
-> Data access for Agentforce ASAs is controlled via the **Running User** setting in the Agentforce Studio UI:
-> Setup → Agentforce Studio → Aria → Settings → Running User
-> Set Running User to `dmckee@fdecapstone.com.161026` (Destiny) for the demo. This user already has `Aria_Agent_Access` assigned.
+> **Agentforce ASAs do not use the bot user's permissions for data access.** They use a designated **Running User** — a real licensed user whose profile and permission sets govern what the agent can read/write. `Aria_Agent_Access` must be on the Running User.
+>
+> **Required manual step (UI only):**
+> Setup → Agentforce Studio → Aria → Settings → **Running User**
+> Set to: `dmckee@fdecapstone.com.161026` (already has `Aria_Agent_Access` assigned)
 
 1. Ensure `Aria_Agent_Access` includes Read+Edit on `MessagingSession` (already in the PS from TASK-D1). Verify:
    ```bash
