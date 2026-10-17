@@ -13,7 +13,7 @@ Launch general-purpose agent:
 >
 > Use `sf data create record --sobject Knowledge__kav` for each article. Set: Title, Summary (1-2 sentences), Body (plain language, 200-400 words), ArticleType=FAQ__kav, IsVisibleInCsp=true. Publish each article after creation.
 >
-> After completion, send Slack notification to Adam (channel C0C82MYADGW) and mark `Ready for Review`.
+> After completion, send Slack notification to channel C0C82MYADGW tagging <@U01G1BKBBN2> (Adam Barr) and mark `Ready for Review`.
 >
 > No permission set changes required — Knowledge is accessible via `Aria_Agent_Access` (Read on Knowledge__kav already granted in TASK-D1). Update TASK-A1 record: `Status__c='Ready for Review'`, `Notes__c='5 Knowledge articles drafted and published. Einstein Search Grounding tags applied. Awaiting Adam review.'`
 
@@ -30,5 +30,5 @@ Launch general-purpose agent:
 >
 > 3. **Slide copy fixes** for any Level 1–2 areas found in the gap analysis — suggest revised copy that demonstrates Level 3 thinking.
 >
-> After completion, send Slack notification to Adam (channel C0C82MYADGW) and mark `Ready for Review`.
+> After completion, send Slack notification to channel C0C82MYADGW tagging <@U01G1BKBBN2> (Adam Barr) and mark `Ready for Review`.
 > Update TASK-A2 record: `Status__c='Ready for Review'`, `Notes__c='CTO Q&A + rubric gap analysis drafted. Saved to .claude/docs/adam-review-draft.md. Awaiting Adam review.'`

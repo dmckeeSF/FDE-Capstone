@@ -85,7 +85,7 @@ Template:
 ```
 *TASK-Z1 ready for your review* 🍽️
 
-@Zach — AI-generated mock data is loaded in FdeCap and ready for review.
+<@U076UD0550Q> — AI-generated mock data is loaded in FdeCap and ready for review.
 
 *Created:*
 • 5 Restaurant Accounts
@@ -102,5 +102,5 @@ SELECT Booking_Reference__c, Status__c, Restaurant__r.Name, Diner__r.FirstName, 
 *Org login:* <instanceUrl>/lightning/o/Account/list?filterName=Recent
 
 *To approve:* Open the Aria Build Tracker app → Build Tasks tab → TASK-Z1 → change Status to Done.
-Questions? Ping @Destiny.
+Questions? Ping <@U08NK2JGHEJ>.
 ```

@@ -153,6 +153,18 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
+    <fields>
+        <fullName>Notes__c</fullName>
+        <label>Notes</label>
+        <length>2000</length>
+        <type>LongTextArea</type>
+        <visibleLines>5</visibleLines>
+    </fields>
+    <fields>
+        <fullName>Completed_At__c</fullName>
+        <label>Completed At</label>
+        <type>DateTime</type>
+    </fields>
     <label>Build Task</label>
     <nameField>
         <label>Task ID</label>

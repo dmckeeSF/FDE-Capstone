@@ -277,13 +277,18 @@ When a task reaches `Ready for Review` or needs team sign-off, post to channel `
 ```
 [TASK-ID] ready for review
 
-Who: @[name]
+Who: <@USERID>
 What to do: [one sentence]
 Where: [direct link to Salesforce record or list view]
 How to confirm: Update the Build_Task__c record "[TASK-ID]" to Status = Done
 ```
 
-Use `mcp__slack__slack_send_message` or `mcp__plugin_slack_slack__slack_send_message`.
+Use `mcp__slack__slack_send_message`.
+
+**Slack User IDs (use `<@USERID>` format for mentions):**
+- Destiny McKee: `<@U08NK2JGHEJ>`
+- Adam Barr: `<@U01G1BKBBN2>`
+- Zach Copman: `<@U076UD0550Q>`
 
 ---
 
