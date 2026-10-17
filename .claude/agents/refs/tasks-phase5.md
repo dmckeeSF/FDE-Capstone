@@ -17,3 +17,19 @@ Launch `adlc-engineer`:
 > 5. Surface Unified Individual profile as grounding context for Aria: loyalty tier, booking count, preferred cuisine — available as read-only context in agent responses. No activation, no segment creation.
 >
 > Report the Data Cloud org URL and confirm both data streams are active.
+
+### Permission Set Steps (TASK-D13)
+After Data Cloud is enabled and data streams are configured:
+1. Assign the Data Cloud Admin permission set to Destiny (required to manage data streams):
+   ```bash
+   DC_PS=$(sf data query \
+     --query "SELECT Name FROM PermissionSet WHERE Name='SalesforceAdminForDataCloud' OR Name='DataCloudAdministrator' LIMIT 1" \
+     --target-org FdeCap --json | jq -r '.result.records[0].Name // empty')
+   sf org assign permset --name "$DC_PS" --on-behalf-of dmckee@fdecapstone.com.161026 --target-org FdeCap
+   ```
+2. Update TASK-D13 record:
+   ```bash
+   sf data update record --sobject Build_Task__c --where "Name='TASK-D13'" \
+     --values "Notes__c='Data Cloud enabled. Contact + Reservation data streams active. Identity resolution configured. Data Cloud Admin PS assigned to Destiny.' Status__c='Done'" \
+     --target-org FdeCap
+   ```

@@ -8,6 +8,24 @@ Launch `adlc-author`:
 >
 > Create the Omni-Channel Flow for context variable mapping: fires on MessagingSession creation, reads the authenticated Experience Cloud Contact using the session ContactId, maps to MessagingSession custom fields: ContactId__c, MembershipNumber__c (from Contact.Membership_Number__c), IsAuthenticated__c=true if Contact found, LoyaltyTier__c from Contact.Loyalty_Tier__c, BookingReference__c from URL parameter if present.
 
+### Permission Set Steps (TASK-D5)
+After agent and Omni-Channel Flow deploy:
+1. Assign `Aria_Agent_Access` to the Aria bot/agent user — query dynamically:
+   ```bash
+   BOT_USER=$(sf data query \
+     --query "SELECT Username FROM User WHERE LastName='Aria' AND UserType='AutoProcess' LIMIT 1" \
+     --target-org FdeCap --json | jq -r '.result.records[0].Username // empty')
+   # If bot user found:
+   sf org assign permset --name Aria_Agent_Access --on-behalf-of "$BOT_USER" --target-org FdeCap
+   ```
+2. Ensure `Aria_Agent_Access` includes Read+Edit on `MessagingSession` (already in the PS from TASK-D1). If not, add object permissions now.
+3. Update TASK-D5 record:
+   ```bash
+   sf data update record --sobject Build_Task__c --where "Name='TASK-D5'" \
+     --values "Notes__c='Aria agent created. Omni-Channel context variable Flow deployed. Aria_Agent_Access assigned to Aria bot user.' Status__c='Done'" \
+     --target-org FdeCap
+   ```
+
 ## TASK-D6 — Topic: Booking Management
 Launch `adlc-author`:
 > Add Booking Management topic to Aria in FdeCap.
@@ -21,6 +39,8 @@ Launch `adlc-author`:
 >
 > Pass {!$Context.ContactId__c} to all actions for identity verification. Never ask the diner to identify themselves.
 
+On completion, update TASK-D6 record: `Status__c='Done'`, `Notes__c='Booking Management topic deployed with Get/Modify/Cancel actions. Authentication context variable filter active.'`
+
 ## TASK-D7 — Topic: Restaurant Information
 Launch `adlc-author`:
 > Add Restaurant Information topic to Aria in FdeCap. No authentication filter — accessible to all users.
@@ -29,6 +49,8 @@ Launch `adlc-author`:
 > - Get Restaurant Info: SOQL Agent Action on Account (Record Type: Restaurant). Returns hours, cuisine, policies, accessibility info, dress code.
 > - Check Availability: SOQL on Reservation__c COUNT for restaurant + date, returns available slots vs Max_Party_Size__c.
 
+On completion, update TASK-D7 record: `Status__c='Done'`, `Notes__c='Restaurant Information topic deployed with Get Info + Check Availability SOQL actions.'`
+
 ## TASK-D8 — Topic: Platform FAQ
 Launch `adlc-author`:
 > Add Platform FAQ topic to Aria in FdeCap. No authentication filter.
@@ -36,6 +58,8 @@ Launch `adlc-author`:
 > Action: Search Knowledge Base via Einstein Search Grounding.
 > Scope: Knowledge articles tagged: Cancellation Policy, Booking FAQ, Accessibility, Restaurant Policies.
 > Depends on TASK-A1 (Knowledge articles must be deployed and tagged before this topic works).
+
+On completion, update TASK-D8 record: `Status__c='Done'`, `Notes__c='Platform FAQ topic deployed. Einstein Search Grounding scoped to 4 Knowledge categories.'`
 
 ## TASK-D9 — Topic: Escalation + Guardrails
 Launch `adlc-author`:
@@ -59,3 +83,5 @@ Launch `adlc-author`:
 > - Competitor comparisons → decline and redirect
 > - Payment disputes → immediate warm transfer
 > - Any request outside hospitality/booking domain → decline
+
+On completion, update TASK-D9 record: `Status__c='Done'`, `Notes__c='Escalation topic + 5 guardrail nodes deployed. All 8 escalation triggers configured.'`

@@ -14,6 +14,26 @@ Launch `adlc-engineer`:
 > - Build_Task__c List Views: create two list views — "All Tasks" (all records, columns: Name, Status__c, Owner__c, Notes__c, Completed_At__c, sorted by CreatedDate ASC) and "My Tasks" (filtered by Owner__c = current user's name, same columns). Make both list views visible to all users.
 > - Permission Set Aria_Agent_Access: Read on Account/Contact/Reservation__c/Knowledge; Create+Edit on Case; Edit Status__c/Cancelled_At__c/Modified_At__c/Original_Reservation_Date__c on Reservation__c; Read on Build_Task__c (so all team members can view task state)
 
+### Permission Set Steps (TASK-D1)
+After all metadata deploys successfully:
+1. The spec above includes creating `Aria_Agent_Access`. Verify it deployed with all listed object/field permissions.
+2. Create `Build_Task_Team_Access` — `viewAllFields: true`, Read+Create+Edit on `Build_Task__c`, `viewAllRecords: true`.
+3. Assign both permission sets:
+   ```bash
+   # Build_Task_Team_Access → all three team members
+   sf org assign permset --name Build_Task_Team_Access --on-behalf-of dmckee@fdecapstone.com.161026 --target-org FdeCap
+   sf org assign permset --name Build_Task_Team_Access --on-behalf-of abarr@fdecapstone.com.161026 --target-org FdeCap
+   sf org assign permset --name Build_Task_Team_Access --on-behalf-of zcopman@fdecapstone.com.161026 --target-org FdeCap
+   # Aria_Agent_Access → Destiny for testing now; Aria bot user assigned in TASK-D5
+   sf org assign permset --name Aria_Agent_Access --on-behalf-of dmckee@fdecapstone.com.161026 --target-org FdeCap
+   ```
+4. Update TASK-D1 record:
+   ```bash
+   sf data update record --sobject Build_Task__c --where "Name='TASK-D1'" \
+     --values "Notes__c='Full data model deployed. 43 components. Aria_Agent_Access + Build_Task_Team_Access created. All 3 users assigned Build_Task_Team_Access. Commit: adbf5bf.' Status__c='Done'" \
+     --target-org FdeCap
+   ```
+
 ## TASK-Z1 (AI generates, Zach reviews)
 Launch `adlc-engineer`:
 > Using sf CLI, create the following records in FdeCap org using dynamic queries for all IDs — no hardcoded record IDs:

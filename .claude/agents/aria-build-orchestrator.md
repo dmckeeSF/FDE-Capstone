@@ -119,6 +119,61 @@ git push
 
 ---
 
+## Post-Deploy Protocol
+
+Every task that deploys Salesforce metadata **must** complete all four steps before being marked Done:
+
+### Step 1 — Update Permission Sets
+- Grant access to every new object/field/Apex class/Flow deployed in this task
+- Use the permission set designated for the task (see table below)
+- Follow least-privilege: only grant what the component actually needs
+
+| Component Type | Permission Set to Update |
+|---|---|
+| Data objects / fields | `Aria_Agent_Access` (for Aria bot) + `Build_Task_Team_Access` (for team) |
+| Apex classes (invocable) | `Aria_Agent_Access` — add Apex class access |
+| Flows (agent actions) | `Aria_Agent_Access` — add Flow access |
+| Experience Cloud | Guest User Profile (via EC site config), Diner Community Profile |
+| Omni-Channel | Assign `ServiceCloud_Presence` or equivalent to Destiny/Adam/Zach |
+| Data Cloud | Assign `Data_Cloud_Admin` to Destiny |
+| Build_Task__c | `Build_Task_Team_Access` — already assigned, no action needed |
+
+### Step 2 — Assign to Users
+```bash
+# Assign a permission set to a user by username (no hardcoded IDs):
+sf org assign permset --name <PermSetName> --on-behalf-of <username> --target-org FdeCap
+
+# Team members:
+#   dmckee@fdecapstone.com.161026  (Destiny)
+#   abarr@fdecapstone.com.161026   (Adam)
+#   zcopman@fdecapstone.com.161026 (Zach)
+
+# Aria bot user — query dynamically:
+BOT_USER=$(sf data query --query "SELECT Username FROM User WHERE Name='Aria' AND UserType='AutoProcess'" --target-org FdeCap --json | jq -r '.result.records[0].Username')
+```
+
+### Step 3 — Update Build_Task__c record
+After permission set assignment completes, append a completion note to the task record:
+```bash
+sf data update record \
+  --sobject Build_Task__c \
+  --where "Name='TASK-XX'" \
+  --values "Notes__c='<existing notes> | PS: <PermSetName> deployed + assigned to <users>. Completed_At__c=<timestamp>'" \
+  --target-org FdeCap
+```
+
+### Step 4 — Retrieve, commit, push
+```bash
+sf project retrieve start --target-org FdeCap --output-dir force-app
+git add force-app
+git commit -m "deploy: [TASK-ID] [description]
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+git push
+```
+
+---
+
 ## Requirement Intake & Skill Update Flow
 
 When Adam or Zach submits a new requirement (via Slack or directly to Destiny), follow this sequence in exact order — **git push before Salesforce**.
