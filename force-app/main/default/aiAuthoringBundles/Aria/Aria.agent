@@ -111,13 +111,14 @@ subagent reservation_support:
                     description: "The booking reference number"
                     is_required: True
             outputs:
-                bookingReference: string
-                status: string
-                restaurantName: string
                 dinerName: string
+                errorMessage: string
+                partySize: number
                 reservationDate: string
+                reservationStatus: string
                 reservationTime: string
-                partySize: string
+                restaurantName: string
+                specialRequests: string
         modify_reservation:
             description: "Modify a reservation date, time, or party size"
             target: "flow://Modify_Reservation"
@@ -130,11 +131,15 @@ subagent reservation_support:
                     description: "New reservation date"
                 newTime: string
                     description: "New reservation time"
-                newPartySize: string
+                newPartySize: number
                     description: "New party size"
             outputs:
-                success: boolean
-                message: string
+                confirmationMessage: string
+                errorMessage: string
+                partySize: number
+                reservationDate: string
+                reservationStatus: string
+                reservationTime: string
 
 subagent cancellation_support:
     label: "Cancellation Support"
@@ -174,8 +179,8 @@ subagent cancellation_support:
                     description: "Reason for cancellation"
                     is_required: True
             outputs:
-                success: boolean
-                message: string
+                confirmationMessage: string
+                errorMessage: string
 
 subagent restaurant_info:
     label: "Restaurant Information"
@@ -193,7 +198,7 @@ subagent restaurant_info:
         actions:
             get_restaurant_info: @actions.get_restaurant_info
                 description: "Look up restaurant details by name"
-                with restaurantName = ...
+                with restaurantNames = ...
             check_availability: @actions.check_availability
                 description: "Check table availability at a restaurant on a specific date"
                 with restaurantName = ...
@@ -206,7 +211,7 @@ subagent restaurant_info:
             description: "Query restaurant details from Account records (RecordType: Restaurant)"
             target: "apex://GetRestaurantInfoAction"
             inputs:
-                restaurantName: string
+                restaurantNames: string
                     description: "The name of the restaurant to look up"
                     is_required: True
             outputs:
@@ -217,7 +222,7 @@ subagent restaurant_info:
                 priceRange: string
                 dressCode: string
                 accessibilityInfo: string
-                maxPartySize: string
+                maxPartySize: number
         check_availability:
             description: "Check reservation availability at a restaurant on a given date"
             target: "apex://CheckRestaurantAvailabilityAction"
@@ -230,7 +235,8 @@ subagent restaurant_info:
                     is_required: True
             outputs:
                 isAvailable: boolean
-                availableSlots: string
+                availableSlots: number
+                maxPartySize: number
                 message: string
 
 subagent platform_faq:
@@ -249,6 +255,7 @@ subagent platform_faq:
             search_knowledge: @actions.search_knowledge
                 description: "Search Knowledge articles for platform policies and FAQs"
                 with searchQuery = ...
+                with dataCategory = ...
             escalate_to_human: @utils.escalate
                 description: "Escalate when no Knowledge article answers the diner's question."
 
@@ -292,6 +299,8 @@ subagent escalation:
                 description: "Create a high-priority Case when no live agent is available"
                 with contactId = @variables.ContactId
                 with bookingReference = @variables.booking_reference
+                with issueDescription = ...
+                with transcriptText = ...
                 available when @variables.ContactId != ""
 
     actions:
@@ -304,11 +313,13 @@ subagent escalation:
                     is_required: True
                 bookingReference: string
                     description: "The booking reference if known"
-                priority: string
-                    description: "Case priority"
+                issueDescription: string
+                    description: "Brief description of the issue"
+                transcriptText: string
+                    description: "Conversation transcript to attach to the case"
             outputs:
                 caseNumber: string
-                success: boolean
+                confirmationMessage: string
 
 subagent off_topic:
     label: "Off Topic"
