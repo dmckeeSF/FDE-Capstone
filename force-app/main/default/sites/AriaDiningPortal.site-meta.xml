@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomSite xmlns="http://soap.sforce.com/2006/04/metadata">
+    <active>true</active>
+    <allowHomePage>true</allowHomePage>
+    <allowStandardAnswersPages>false</allowStandardAnswersPages>
+    <allowStandardIdeasPages>false</allowStandardIdeasPages>
+    <allowStandardLookups>true</allowStandardLookups>
+    <allowStandardPortalPages>false</allowStandardPortalPages>
+    <authorizationRequiredPage>CommunitiesLogin</authorizationRequiredPage>
+    <browserXssProtection>true</browserXssProtection>
+    <changePasswordPage>CommunitiesChangePassword</changePasswordPage>
+    <contentSniffingProtection>true</contentSniffingProtection>
+    <forgotPasswordPage>CommunitiesForgotPassword</forgotPasswordPage>
+    <guestProfile>Aria Dining Portal Profile</guestProfile>
+    <indexPage>CommunitiesLanding</indexPage>
+    <masterLabel>Aria Dining Portal</masterLabel>
+    <referrerPolicyOriginWhenCrossOrigin>true</referrerPolicyOriginWhenCrossOrigin>
+    <siteAdmin>dmckee@fdecapstone.com.161026</siteAdmin>
+    <siteGuestRecordDefaultOwner>dmckee@fdecapstone.com.161026</siteGuestRecordDefaultOwner>
+    <siteType>Visualforce</siteType>
+    <subdomain>ariadining</subdomain>
+    <urlPathPrefix>dining</urlPathPrefix>
+</CustomSite>
