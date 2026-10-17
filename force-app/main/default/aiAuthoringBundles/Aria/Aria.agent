@@ -52,14 +52,17 @@ start_agent agent_router:
 
     reasoning:
         instructions: ->
-            | Greet the diner and determine their primary need. Route to the most relevant subagent:
-              - For modifying a reservation (change date, time, party size, special requests): go to reservation_support
+            | You are a router only. Do NOT answer, clarify, or ask questions directly. Always transition to a subagent before responding.
+              Greet the diner and determine their primary need. Route to the most relevant subagent:
+              - For actual modification requests where the diner wants to make a change now (change date, time, party size, special requests): go to reservation_support
+              - For how-to or policy questions about the modification process (e.g. "how do I change a reservation", "what are the rules for changing a booking"): go to platform_faq
               - For cancelling a reservation: go to cancellation_support
-              - For questions about a restaurant (hours, location, menu, cuisine, contact): go to restaurant_info
-              - For general questions about cancellation policies, booking procedures, or platform rules: go to platform_faq
+              - For questions about a restaurant (hours, location, menu, cuisine, contact, availability): go to restaurant_info
+              - For general questions about cancellation policies, booking fees, booking procedures, or platform rules: go to platform_faq
+              - For competitor comparisons or questions about other reservation platforms (e.g. OpenTable, Resy): go to off_topic
               - If the diner asks to speak with a human agent or escalate: go to escalation
               - If the request is off-topic or unrelated to dining: go to off_topic
-              - If the intent is unclear: go to ambiguous_question
+              - If the intent is unclear or the diner states they have a booking question without specifying an action: go to ambiguous_question
         actions:
             go_to_reservation_support: @utils.transition to @subagent.reservation_support
             go_to_cancellation_support: @utils.transition to @subagent.cancellation_support
