@@ -76,8 +76,8 @@ subagent reservation_support:
 
     reasoning:
         instructions: ->
-            if @variables.is_authenticated == False:
-                | Please log in to your account to manage your reservation.
+            if @variables.is_authenticated != True:
+                | Please log in to your account to manage your reservation. You can log in via the diner portal and then return to this chat.
             if @variables.is_authenticated == True:
                 | Help the diner look up and modify their reservation.
                   If session booking reference is available ({!@variables.booking_reference_session}), use it automatically.
@@ -142,8 +142,8 @@ subagent cancellation_support:
 
     reasoning:
         instructions: ->
-            if @variables.is_authenticated == False:
-                | Please log in to your account to manage your reservation.
+            if @variables.is_authenticated != True:
+                | Please log in to your account to manage your reservation. You can log in via the diner portal and then return to this chat.
             if @variables.is_authenticated == True:
                 | Help the diner cancel their reservation.
                   If session booking reference is available ({!@variables.booking_reference_session}), use it automatically.
