@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Grants all three build team members (Destiny, Adam, Zach) full read/edit access to Build_Task__c and its custom fields.</description>
     <applicationVisibilities>
         <application>Build_Task_App</application>
         <visible>true</visible>
     </applicationVisibilities>
+    <description>Grants all three build team members (Destiny, Adam, Zach) full read/edit access to Build_Task__c and its custom fields.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Build Task Team Access</label>
     <license>Salesforce</license>
