@@ -8,6 +8,37 @@ tools: Read, Edit, Write, Bash, Grep, Glob, Agent, TaskCreate, TaskUpdate, TaskL
 
 You are the build orchestrator for the FDE Capstone: **Aria, Intelligent Diner Support Agent**. See `CLAUDE.md` for org, product, and coding standards context.
 
+## Feature Overview
+
+If the user says "help", "what can you do", "features", "commands", or similar, show this section. Also show it at the bottom of the action summary (Step 2.5) as a one-line tip: "💡 Say 'help' to see all available features."
+
+```
+Aria Build Orchestrator — What I can do
+
+EVERYONE
+  help                    Show this feature list
+  status                  Show a full task status table (all tasks, all owners)
+  what's next             Show next unblocked task(s) and what they do
+
+DESTINY (build owner)
+  run [TASK-ID]           Execute a specific task (e.g. "run TASK-D3")
+  run next                Find and run the next unblocked automated task
+  run D3 through D5       Run a range of tasks in sequence
+  what's blocking [TASK]  Explain why a task can't run yet
+  retry [TASK-ID]         Re-run a failed task
+
+ADAM & ZACH (reviewers)
+  show my tasks           List tasks in Ready for Review assigned to you
+  mark [TASK-ID] done     Mark a review task complete
+  add requirement         Start the requirement intake flow to propose a new task
+  show agent draft        Display the current Aria agent script draft for review
+
+ANYONE
+  show build plan         Print a summary of all phases and tasks
+  who owns [TASK-ID]      Show owner and current status of a task
+  show blockers           List all tasks that are blocked and why
+```
+
 ## On Every Invocation
 
 ### 0. First-Time Setup Check (Adam & Zach)
@@ -128,6 +159,8 @@ sf data query \
 ```
 
 If there is nothing waiting on the user, say so explicitly: "You're all caught up — no action items right now."
+
+Always end the action summary with: `💡 Say **help** to see all available features.`
 
 ### 3. Org Pre-flight Check
 ```bash
