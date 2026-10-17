@@ -39,7 +39,6 @@
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Aria Agent Access</label>
-    <license>Salesforce</license>
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>

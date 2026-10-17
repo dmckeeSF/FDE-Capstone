@@ -1,0 +1,206 @@
+# BUILD BRIEF — COPY/PASTE CONTENT
+## Intelligent Diner Support Agent | Online Hospitality Platform
+
+---
+
+## SLIDE 1 — COVER
+
+**Team Name:** Team 4
+**Use Case Name:** Intelligent Diner Support Agent
+**Name / Title:** Destiny McKee / Lead Forward Deployed Engineer, Salesforce
+**Name / Title:** Adam Barr / Principal Deployment Strategist, Salesforce
+**Name / Title:** Zach Copman / Principal, Forward Deployed Engineer, Salesforce
+
+---
+
+## SLIDE 2 — PURPOSE
+
+### JOB STORY
+When I need to modify a reservation, cancel a booking, or get restaurant details, I want immediate support so I can resolve my request without waiting on a human agent.
+
+### BUSINESS CHALLENGE
+Millions of diners, but support still runs on FAQs and human agents. Routine requests take too long, escalations miss the right queue, and bookings get abandoned. OpenTable and Smartsheet proved the same two failure modes: inaccurate responses and broken escalation. No Agentforce solution exists yet.
+
+### EXPECTED VALUE
+
+- Response time for common requests: down 25%
+- First-contact resolution rate: above 80%
+- FTE deflection of inbound diner support volume: 40 to 50%
+- DSAT for automated interactions: measurable improvement vs. baseline
+- Booking conversion: increase during initial deployment (baseline TBD at launch)
+- Repeat bookings and additional annual revenue via upselling and cross-selling (Phase 2)
+
+Tracked via Einstein Analytics: deflection rate, resolution time, escalation rate, CSAT, case re-open rate.
+Consumption model: Flex Credits.
+
+Phase 1: Modifications, cancellations, restaurant info, escalation via embedded web chat.
+Phase 2: Concierge Agent with personalized recommendations, loyalty integration, group bookings, and context-aware handoffs across web, mobile, and voice.
+
+---
+
+## SLIDE 3 — PERSONAS
+
+### END USERS
+
+**Primary: The Diner**
+Tech-comfortable consumers (25 to 45) who book online and expect instant, self-service resolution. They engage at two moments: mid-booking when they need restaurant details to confirm a choice, and post-booking when plans change. They're high-intent and low-patience. A successful interaction means a resolved request in a single session with no need to repeat themselves. Friction here directly threatens conversion and repeat bookings.
+
+**Secondary: The Human Support Agent**
+Receives escalated cases via Omni-Channel. Expects full conversation context pre-loaded so they never ask the diner to repeat themselves. Success means receiving a warm transfer with the diner record, conversation transcript, issue classification, and next-action recommendation, ready to resolve in one additional touch.
+
+### AGENT IDENTITY
+- **Name:** Aria (Intelligent Diner Support Agent)
+- **Archetype:** Helpful Concierge. Warm, confident, and efficient.
+- **Tone:** Friendly and professional. Plain language, no jargon.
+- **Scope (IN):** Booking modifications, cancellations, restaurant information lookup, platform FAQ, escalation routing
+- **Scope (OUT):** Payment disputes, food safety complaints, legal claims, off-platform inquiries. Escalate immediately.
+- **Opening message:** "Hi! I'm Aria, your dining assistant. I can help you modify or cancel a reservation, look up restaurant details, or answer questions about your booking. How can I help?"
+
+### PRIMARY CHANNEL
+Embedded web chat on the platform's booking confirmation and account management pages.
+
+This is the right surface. Diners are already in-context at the point of need: high intent, authenticated session available, no channel-switching required. Mobile app parity is planned for Phase 2.
+
+---
+
+## SLIDE 4 — AGENTIC DESIGN & ARCHITECTURE
+
+### ARCHITECTURE DIAGRAM DESCRIPTION
+*(Replace with visual in slides. Use this as label reference.)*
+
+**Agent:** New Agent Builder with Agent Script (Script Builder)
+
+**Topics and Actions:**
+
+| Topic | Actions |
+|-------|---------|
+| Booking Management | Get Reservation Details (read), Modify Reservation (write), Cancel Reservation (write) |
+| Restaurant Information | Get Restaurant Info (read), Check Availability (read) |
+| Platform FAQ | Search Knowledge Base (Einstein Search Grounding) |
+| Escalation | Transfer to Human Agent (Omni-Channel warm transfer), Create Case (fallback) |
+
+**Logic Flow:**
+1. Diner initiates chat. Agent authenticates session via Experience Cloud token.
+2. Intent classification. Script Builder routes to the appropriate Topic.
+3. Booking actions: Agent retrieves record, confirms details with diner, executes change via Flow/Apex callout, confirms outcome.
+4. Restaurant info: Agent calls external REST API via Named Credential and formats the response.
+5. FAQ: Einstein Search Grounding queries Salesforce Knowledge and returns a grounded response.
+6. Escalation trigger met: warm transfer via Omni-Channel with full transcript and CRM record attached.
+
+**Agentic Design Pattern:** Reactive Agent. Responds to inbound diner requests through intent classification, slot filling (missing info gathered via clarification turns), action execution, and outcome confirmation. Falls back to a Clarification Loop on ambiguous input, with a maximum of 2 turns before an escalation offer.
+
+### DESIGN APPROACH
+
+**Guided Design Principles Applied:**
+- **Clarity of scope:** Explicit topic boundaries in Script Builder prevent hallucination drift. This is the same failure pattern documented at OpenTable and Smartsheet. Solved by grounding responses to specific Salesforce Knowledge articles rather than open-ended generation, so the agent only returns what it can cite.
+- **Graceful failure:** After 2 failed clarification attempts, the agent proactively offers a human transfer instead of looping.
+- **Minimal steps:** Every transactional flow resolves with the fewest possible turns.
+- **Ethics by Design:** Consequence Scanning was applied during design to identify bias, privacy, and misuse risks before build. Mitigation strategies are embedded in the agent configuration, not added after deployment.
+
+**Script Builder handles:** Topic routing, conversation flow, response templates, escalation trigger logic, guardrail enforcement, and prompt templates grounded to Knowledge.
+
+**Custom Flow/Apex handles:** Reservation modification and cancellation. These are write operations to the external reservation system via a REST callout wrapped in a Flow-invocable Apex action.
+
+**Key Design Tradeoffs:**
+- Script Builder-first over full custom Apex. This maximizes configurability for the platform's ops team post-deployment without a developer dependency, optimizing for time-to-value and admin manageability. The tradeoff is slightly less flexibility in complex branching.
+- Mocked REST endpoint in the demo org. The production path via Named Credentials and MuleSoft needs to be articulated clearly in the live demo.
+- Single agent (Aria) with multiple topics over multi-agent orchestration. This is the right scope for Phase 1. The sub-agent Concierge pattern is documented in the Phase 2 roadmap.
+
+**Phase 2 Architecture Evolution:**
+The Reactive Agent pattern scales into a Proactive and Orchestrator pattern in Phase 2. A Concierge orchestrator coordinates specialized sub-agents: a Recommendation Agent (Data Cloud and preference history), a Loyalty Agent (loyalty program integration), and a Group Booking Agent (multi-party coordination). Context-aware handoffs across web, mobile, and voice are enabled by Omni-Channel with unified conversation history persisted in Data Cloud.
+
+---
+
+## SLIDE 5 — TOOLS
+
+### DATA SOURCES
+- **Salesforce Knowledge:** KB articles covering cancellation policy, restaurant policies, booking FAQ, and accessibility info. Grounded via Einstein Search Grounding to prevent hallucination.
+- **Reservation System (External REST API):** Read/write access to booking records. This is the source of truth for all modification and cancellation actions.
+- **Data Cloud:** Unified diner profiles including booking history, cuisine preferences, and loyalty tier. Used for personalization context. Phase 1 is read-only grounding; Phase 2 activates full personalization.
+- **CRM Objects:** Contact, Case, Reservation__c (custom), Restaurant__c (custom)
+
+### INTEGRATIONS
+- **Reservation System API:** REST/JSON external callout via Named Credential. A Flow-invocable Apex action wraps create, read, and update operations. MuleSoft in production; mocked REST endpoint in the demo org.
+- **Restaurant Data API:** External REST API for real-time menu, hours, and availability. Named Credential and HTTP Callout Action.
+- **Salesforce Omni-Channel:** Warm transfer to human agents with full conversation transcript and diner CRM record pre-loaded to the agent desktop.
+- **Authentication:** OAuth 2.0 Named Credentials for all external API calls. Diner identity is verified via active Experience Cloud session token, with an email confirmation flow for unauthenticated interactions.
+
+### ACTIONS
+| Action | Type | Visibility |
+|--------|------|-----------|
+| Get Reservation Details | Read | Private (authenticated) |
+| Modify Reservation | Write | Private (authenticated) |
+| Cancel Reservation | Write | Private (authenticated) |
+| Get Restaurant Info | Read | Public |
+| Check Availability | Read | Public |
+| Search Knowledge Base | Read | Public |
+| Create Case | Write | Private |
+| Transfer to Human Agent | System | Private |
+
+### NOTES
+
+* Loyalty
+    * Retention strategies that could be executed by agent before escalation
+        * Cancellation:
+            * Loyalty Tier based Discounting
+                * Platinum: Free
+                * Gold: Discounting?
+
+### SECURITY CONSIDERATIONS
+- **Einstein Trust Layer:** Enabled. Zero data retention, PII masking, toxicity filtering, and input/output filtering on all LLM prompts. Diner PII (name, email, booking ID) is never persisted in AI inference logs. Prompt injection attempts are blocked at the model layer.
+- **Named Credentials:** All external API calls use Named Credentials. No hardcoded secrets or credentials in code.
+- **Least-privilege access:** Agent actions scoped via Permission Set to minimum-necessary record access. Write actions (modify/cancel) require an authenticated diner session. No anonymous write operations permitted.
+- **Responsible AI (RAI) Governance:** Agent design aligns with Salesforce's Acceptable Use Policy (AUP). Consequence Scanning identified bias, privacy, and misuse risks during design. Mitigations are built into agent configuration.
+- **Human-in-the-Loop (HITL):** Escalation triggers enforce human oversight for complex, sensitive, and high-stakes interactions. No fully autonomous decisions on policy exceptions, sensitive topics, or edge cases.
+- **MCP security (roadmap):** If MCP servers are added in Phase 2, publisher trust verification, action boundary review, and data access scope documentation are required before production deployment.
+
+---
+
+## SLIDE 6 — ESCALATION PATH
+
+### AGENT HANDLES (Fully Automated)
+- Booking modification requests: date, time, and party size changes within platform policy
+- Cancellation requests within standard cancellation policy windows
+- Restaurant information lookups: hours, menus, parking, accessibility, and dress code
+- Common platform FAQ: cancellation policy, waitlist process, and booking fee explanation
+- Multi-turn clarification for ambiguous requests, resolved within 2 turns
+- Post-action confirmation and follow-up messages
+
+### HUMAN TAKES OVER
+**Escalation Triggers:**
+
+| Trigger | Handoff Type |
+|---------|-------------|
+| No answer found after Knowledge article search | Escalate to live agent or create support ticket |
+| Agent confidence below threshold after 2 clarification attempts | Warm transfer + transcript |
+| Diner explicitly requests human ("talk to a person", "agent", "help me") | Warm transfer + transcript |
+| Cancellation outside policy window (requires manager approval) | Warm transfer + Case created |
+| Payment dispute or billing-related request | Immediate warm transfer |
+| Emotional distress signals (anger keywords, repeated failures, profanity) | Immediate warm transfer |
+| Accessibility accommodation request | Warm transfer with priority flag |
+| Legal, safety, or discrimination claim | Immediate warm transfer + Case |
+
+**Handoff mechanism:** Warm transfer via Salesforce Omni-Channel. The human agent receives the full conversation transcript, diner Contact record, active Reservation record, issue classification label, and recommended next action. The diner doesn't repeat themselves.
+
+**Fallback (no agent available):** A Case is created with Priority set to High and the diner is notified via email with the expected response window. The Case auto-routes to the available queue on the next business hour.
+
+### GUARDRAILS AND BOUNDARIES
+**Off-limits topics (Script Builder guardrails):**
+- Food safety and health complaints
+- Legal threats and discrimination claims
+- Competitor platform comparisons
+- Any request outside the hospitality and booking domain
+
+**Actions requiring human approval:**
+- Cancellations outside policy window
+- Account-level changes (email, password)
+
+**Guardrail enforcement in Script Builder:**
+- Restricted topics are configured as explicit guardrail nodes. The agent responds: "That's outside what I can help with today, but I can connect you with our support team."
+- Adversarial test suite covers prompt injection attempts, jailbreak patterns, off-topic probing, emotional escalation scenarios, and policy edge cases.
+
+**Testing approach:**
+- Unit tests: one per topic, confirming correct routing
+- Edge tests: boundary conditions (cancellation at policy edge, ambiguous booking requests)
+- Regression tests: re-run after every Script Builder update
+- Perturbation tests: rephrase same intent 5 ways to validate consistent resolution

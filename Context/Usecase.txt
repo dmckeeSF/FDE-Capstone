@@ -1,0 +1,18 @@
+USECASE: Online Hospitality Platform: Developing a New Intelligent Diner Support Agent
+Usecase Documentation
+
+* Company: A leading online hospitality and reservations platform connecting millions of diners to restaurants worldwide. Their brand promise centers on seamless, enjoyable dining experiences, but service gaps create friction.
+
+* Scenario: The platform currently handles diner support through a combination of website FAQs and human agents. Diners often experience delays in getting booking modifications, cancellations, or specific restaurant information. Critical issues requiring human intervention are not always efficiently routed, leading to poor customer experiences. A dedicated Agentforce solution is not yet in place.
+
+* Challenge: Build and launch an Agentforce "Intelligent Diner Support Agent" to provide immediate and accurate assistance, improve issue escalation, and enhance overall diner satisfaction, ultimately increasing booking conversion and fostering customer loyalty.
+
+* Short-term Build & Deployment Plan: Launch the "Intelligent Diner Support Agent" to manage booking modifications, cancellations, and retrieve specific restaurant information. The customer's stated goal is to reduce average response times for common requests by 25%, achieve a first-contact resolution rate above 80%, and ensure robust escalation for complex issues. By integrating with the core reservation system, the agent is expected to improve diner satisfaction (DSAT) for automated interactions and increase booking conversion rates during the initial deployment period.
+
+* Long-term Agentic Roadmap: Outline a roadmap for the "Intelligent Diner Support Agent" to evolve into a "Concierge Agent" that proactively offers personalized dining recommendations based on user preferences and historical data, integrates with loyalty programs, facilitates group bookings, and provides seamless, context-aware handoffs to human agents across various communication channels. This roadmap aims to increase repeat bookings and drive additional annual revenue through upselling and cross-selling personalized dining experiences.
+
+* Relation to Momentum Customers: This scenario is built upon insights from OpenTable and Smartsheet.
+
+    * OpenTable, a platform for hospitality reservations, utilized an "ASA (Live) | Restaurant Agent" for "AQWK - Q&A, Creating tickets, Updating deflection score, Qualifying Leads". Key blockers included the agent "not returning any answers," "not finding the correct answer and making stuff up," and "not escalating when instructed to". The scenario's task of designing a new agent for an online hospitality platform that can manage booking modifications and cancellations, retrieve specific restaurant information, and improve issue escalation directly reflects OpenTable's core business and the identified deficiencies in agent accuracy and transfer capabilities.
+
+    * Smartsheet, a work management platform, used an "In-app Service Agent (ASA)" for "Q&A, Case Management, Escalation". They experienced issues where the "Service Agent unable to escalate to live agent" and an "AQWK RAG Issue" where "responses are not accurate—some include made-up URLs". The scenario's emphasis on creating a new agent that prioritizes robust escalation mechanisms and ensures accuracy in information retrieval, particularly with knowledge base synchronization, directly correlates with Smartsheet's challenges in agent performance and reliable handoffs.
