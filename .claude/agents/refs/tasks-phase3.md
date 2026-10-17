@@ -10,19 +10,21 @@ Launch `adlc-author`:
 
 ### Permission Set Steps (TASK-D5)
 After agent and Omni-Channel Flow deploy:
-1. Assign `Aria_Agent_Access` to the Aria bot/agent user — query dynamically:
+
+> **Platform Note:** Agentforce bot users (UserType='Standard', username matches `agentforce_service_agent*`) have a special license that **blocks standard permission set assignment via CLI**. Do NOT attempt `sf org assign permset` on the bot user — it will fail with "user license doesn't match".
+>
+> Data access for Agentforce ASAs is controlled via the **Running User** setting in the Agentforce Studio UI:
+> Setup → Agentforce Studio → Aria → Settings → Running User
+> Set Running User to `dmckee@fdecapstone.com.161026` (Destiny) for the demo. This user already has `Aria_Agent_Access` assigned.
+
+1. Ensure `Aria_Agent_Access` includes Read+Edit on `MessagingSession` (already in the PS from TASK-D1). Verify:
    ```bash
-   BOT_USER=$(sf data query \
-     --query "SELECT Username FROM User WHERE LastName='Aria' AND UserType='AutoProcess' LIMIT 1" \
-     --target-org FdeCap --json | jq -r '.result.records[0].Username // empty')
-   # If bot user found:
-   sf org assign permset --name Aria_Agent_Access --on-behalf-of "$BOT_USER" --target-org FdeCap
+   sf data query --query "SELECT ObjectType FROM ObjectPermissions WHERE Parent.Name='Aria_Agent_Access' AND SObjectType='MessagingSession'" --target-org FdeCap --json
    ```
-2. Ensure `Aria_Agent_Access` includes Read+Edit on `MessagingSession` (already in the PS from TASK-D1). If not, add object permissions now.
-3. Update TASK-D5 record:
+2. Update TASK-D5 record:
    ```bash
    sf data update record --sobject Build_Task__c --where "Name='TASK-D5'" \
-     --values "Notes__c='Aria agent created. Omni-Channel context variable Flow deployed. Aria_Agent_Access assigned to Aria bot user.' Status__c='Done'" \
+     --values "Notes__c='Aria agent deployed. Omni-Channel context variable Flow deployed. Running User must be set in Agentforce Studio UI — CLI permset assignment not supported for bot user license.' Status__c='Done'" \
      --target-org FdeCap
    ```
 
