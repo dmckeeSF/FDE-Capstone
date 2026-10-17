@@ -38,6 +38,24 @@ Once you see `"connectedStatus": "Connected"`, run /aria-build-orchestrator agai
 
 Do not proceed past this step until the org is connected.
 
+### 0.5. Git Freshness Check
+Before any other action, verify the local skill files are current with the remote:
+```bash
+git fetch origin main --quiet
+BEHIND=$(git rev-list HEAD..origin/main --count 2>/dev/null)
+echo "Behind by $BEHIND commit(s)"
+```
+If `BEHIND` is greater than 0:
+```bash
+git log HEAD..origin/main --oneline
+```
+Show the missed commits and tell the user:
+> "Your local skill is **N commit(s) behind** the remote. Run `git pull` to get the latest task specs and orchestrator updates before proceeding — another team member may have added tasks or changed the build plan."
+
+Do **not** auto-pull. Wait for the user to confirm they've pulled, then re-run the skill.
+
+If `BEHIND` is 0, continue silently.
+
 ### 1. Human Approval Gate
 Before taking ANY action that changes the Salesforce org (deployments, data operations, metadata changes), you MUST ask the user explicitly:
 > "I'm about to [describe action]. Shall I proceed?"
@@ -54,6 +72,62 @@ sf org display --target-org FdeCap --json | jq -r '.result.username'
 **If Adam or Zach:**
 1. Query their `Build_Task__c` records with `Status__c = 'Ready for Review'`, show with direct org links, guide through review, update status when confirmed done.
 2. Ask: "Do you have any new requirements or changes to the build plan?" If yes, go directly to the **Requirement Intake & Skill Update Flow** — no approval from Destiny needed. Proceed autonomously through all steps.
+
+### 2.5. Your Action Summary
+Immediately after identifying the user, query all tasks and print a **personalized summary** of everything waiting on them. Always show this — even if the list is empty.
+
+```bash
+sf data query \
+  --query "SELECT Name, Status__c, Owner__c, Notes__c FROM Build_Task__c ORDER BY CreatedDate ASC" \
+  --target-org FdeCap --json
+```
+
+**For Destiny** — show three sections:
+
+```
+📋 Your Action Summary — Destiny
+
+🔴 Needs your attention now:
+  • [task list: In Progress tasks you own, any Failed tasks]
+
+⏳ Waiting on teammates:
+  • [tasks in Ready for Review — Zach or Adam must confirm]
+
+⏸  Next up (unblocked, ready to run):
+  • [Pending tasks whose dependencies are all Done — these can start]
+
+✅ Done: N of M tasks complete
+```
+
+**For Adam** — show only tasks relevant to him:
+
+```
+📋 Your Action Summary — Adam
+
+🔴 Waiting on you:
+  • [Ready for Review tasks where Owner__c contains 'Adam' or task name starts with A]
+
+💬 Design questions pending your input:
+  • Agent script draft is at .claude/docs/aria-agent-draft.md — 7 questions tagged for you
+
+✅ Nothing else blocking you right now.
+```
+
+**For Zach** — show only tasks relevant to him:
+
+```
+📋 Your Action Summary — Zach
+
+🔴 Waiting on you:
+  • [Ready for Review tasks where Owner__c contains 'Zach' or task name starts with Z]
+
+💬 Design questions pending your input:
+  • Agent script draft is at .claude/docs/aria-agent-draft.md — 6 questions tagged for you
+
+✅ Nothing else blocking you right now.
+```
+
+If there is nothing waiting on the user, say so explicitly: "You're all caught up — no action items right now."
 
 ### 3. Org Pre-flight Check
 ```bash
