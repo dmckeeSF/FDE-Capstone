@@ -27,10 +27,45 @@ After all metadata deploys successfully:
    # Aria_Agent_Access → Destiny for testing now; Aria bot user assigned in TASK-D5
    sf org assign permset --name Aria_Agent_Access --on-behalf-of dmckee@fdecapstone.com.161026 --target-org FdeCap
    ```
-4. Update TASK-D1 record:
+4. Deploy the **Aria Build Tracker** Lightning app (`Build_Task_App`) with tabs: Home, Build_Task__c, Account, Contact. Required metadata fields:
+   ```xml
+   <formFactors>Large</formFactors>
+   <formFactors>Small</formFactors>
+   <defaultLandingTab>Build_Task__c</defaultLandingTab>
+   <navType>Standard</navType>
+   <uiType>Lightning</uiType>
+   <tabs>standard-home</tabs>
+   <tabs>Build_Task__c</tabs>
+   <tabs>standard-Account</tabs>
+   <tabs>standard-Contact</tabs>
+   ```
+   Deploy the app first, then the permission set (PS references the app by name):
+   ```bash
+   sf project deploy start --metadata "CustomApplication:Build_Task_App" --target-org FdeCap
+   sf project deploy start --metadata "PermissionSet:Build_Task_Team_Access" --target-org FdeCap
+   ```
+
+5. Deploy the **Admin profile** with two additions — tab visibility and default app. Without both, the tab will not appear in the nav bar even if the app is configured correctly:
+   ```xml
+   <applicationVisibilities>
+       <application>Build_Task_App</application>
+       <default>true</default>
+       <visible>true</visible>
+   </applicationVisibilities>
+   <tabVisibilities>
+       <tab>Build_Task__c</tab>
+       <visibility>DefaultOn</visibility>
+   </tabVisibilities>
+   ```
+   ```bash
+   sf project deploy start --metadata "Profile:Admin" --target-org FdeCap
+   ```
+   > **Note:** `tabVisibilities DefaultOn` is required. Custom tabs default to `DefaultOff` for all profiles — the app can reference the tab but it won't render without this profile setting.
+
+6. Update TASK-D1 record:
    ```bash
    sf data update record --sobject Build_Task__c --where "Name='TASK-D1'" \
-     --values "Notes__c='Full data model deployed. 43 components. Aria_Agent_Access + Build_Task_Team_Access created. All 3 users assigned Build_Task_Team_Access. Commit: adbf5bf.' Status__c='Done'" \
+     --values "Notes__c='Full data model deployed. 43 components. Aria_Agent_Access + Build_Task_Team_Access created. All 3 users assigned Build_Task_Team_Access. Build_Task_App deployed. Admin profile: tab DefaultOn + app default=true.' Status__c='Done'" \
      --target-org FdeCap
    ```
 
