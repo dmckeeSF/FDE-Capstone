@@ -7,6 +7,7 @@
     <description>Grants all three build team members (Destiny, Adam, Zach) full read/edit access to Build_Task__c and its custom fields.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Build Task Team Access</label>
+    <license>Salesforce</license>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>

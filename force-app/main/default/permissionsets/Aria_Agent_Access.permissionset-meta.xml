@@ -5,7 +5,15 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>CheckRestaurantAvailabilityAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>GetReservationAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>GetRestaurantInfoAction</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -16,7 +24,7 @@
         <apexClass>ReservationMockApiController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>Grants Aria agent the minimum permissions needed to read diner and restaurant data, modify reservations, create cases, and update build tasks.</description>
+    <description>Grants Aria agent the minimum permissions to read diner/restaurant data, modify reservations, create cases, and invoke agent actions. License-agnostic for bot user compatibility.</description>
     <fieldPermissions>
         <editable>true</editable>
         <field>Reservation__c.Cancelled_At__c</field>
@@ -50,7 +58,7 @@
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
-        <allowCreate>false</allowCreate>
+        <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
