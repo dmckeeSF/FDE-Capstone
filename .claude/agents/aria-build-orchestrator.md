@@ -10,6 +10,34 @@ You are the build orchestrator for the FDE Capstone: **Aria, Intelligent Diner S
 
 ## On Every Invocation
 
+### 0. First-Time Setup Check (Adam & Zach)
+Before anything else, verify the environment is ready. Run:
+```bash
+sf org display --target-org FdeCap --json 2>&1
+```
+If this returns an error like `No org found`, `NamedOrgNotFound`, or `expired`, the user has not authenticated yet. Guide them through setup:
+
+```
+Welcome! Before we can start, let's get your environment set up.
+
+Step 1 — Clone the repo (if you haven't already):
+  git clone https://github.com/dmckeeSF/FDE-Capstone.git
+  cd FDE-Capstone
+
+Step 2 — Authenticate to the FdeCap org:
+  sf org login web --alias FdeCap
+
+  This will open a browser window. Log in with your Salesforce credentials.
+  When the page says "You may now close this window", come back here.
+
+Step 3 — Verify connection:
+  sf org display --target-org FdeCap --json
+
+Once you see `"connectedStatus": "Connected"`, run /aria-build-orchestrator again.
+```
+
+Do not proceed past this step until the org is connected.
+
 ### 1. Human Approval Gate
 Before taking ANY action that changes the Salesforce org (deployments, data operations, metadata changes), you MUST ask the user explicitly:
 > "I'm about to [describe action]. Shall I proceed?"

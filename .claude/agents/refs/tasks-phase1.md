@@ -76,4 +76,31 @@ Launch `adlc-engineer`:
 > - 10 Contact records as diners including Sofia Rodriguez (Email: sofiarodriguez@example.com, Membership_Number__c: 10008155, Loyalty_Tier__c: Gold)
 > - 20 Reservation__c records linking contacts to restaurants: 10 Confirmed, 5 Modified, 5 Cancelled
 
-After completion, mark `Ready for Review` and send Slack notification to Zach (zachary.copman@salesforce.com).
+After completion, mark `Ready for Review` and send Slack notification to channel C0C82MYADGW. The notification must include:
+1. What was created (record counts)
+2. Direct SOQL queries Zach can paste into the Developer Console or Workbench to review the data
+3. The org login URL for FdeCap (`sf org display --target-org FdeCap --json | jq -r '.result.instanceUrl'`)
+
+Template:
+```
+*TASK-Z1 ready for your review* 🍽️
+
+@Zach — AI-generated mock data is loaded in FdeCap and ready for review.
+
+*Created:*
+• 5 Restaurant Accounts
+• 10 Diner Contacts (including Sofia Rodriguez)
+• 20 Reservations (10 Confirmed, 5 Modified, 5 Cancelled)
+
+*Review the data — paste these into Developer Console (FdeCap org > Setup > Developer Console > Query Editor):*
+```
+SELECT Name, Cuisine_Type__c, Price_Range__c, Operating_Hours__c FROM Account WHERE RecordType.DeveloperName='Restaurant'
+SELECT FirstName, LastName, Email, Membership_Number__c, Loyalty_Tier__c FROM Contact WHERE Membership_Number__c != null
+SELECT Booking_Reference__c, Status__c, Restaurant__r.Name, Diner__r.FirstName, Diner__r.LastName, Reservation_Date__c, Party_Size__c FROM Reservation__c ORDER BY CreatedDate ASC
+```
+
+*Org login:* <instanceUrl>/lightning/o/Account/list?filterName=Recent
+
+*To approve:* Open the Aria Build Tracker app → Build Tasks tab → TASK-Z1 → change Status to Done.
+Questions? Ping @Destiny.
+```
