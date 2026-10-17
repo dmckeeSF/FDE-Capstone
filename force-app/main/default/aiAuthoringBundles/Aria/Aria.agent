@@ -9,7 +9,7 @@ config:
     agent_label: "Aria"
     description: "Intelligent Diner Support Agent — handles reservation modifications, cancellations, restaurant information, and escalation to human agents via Omni-Channel."
     agent_type: "AgentforceServiceAgent"
-    default_agent_user: "agentforce_service_agent2.eb1kjdexugqz@orgfarm.salesforce.com"
+    default_agent_user: "aria_agent@00djv000005aree.ext"
 
 variables:
     EndUserId: linked string

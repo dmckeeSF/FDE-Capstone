@@ -11,14 +11,39 @@ Launch `adlc-author`:
 ### Permission Set Steps (TASK-D5)
 After agent and Omni-Channel Flow deploy:
 
-> **Platform architecture — Einstein Agent license:**
-> The Agentforce bot user (`agentforce_service_agent*`) has an **"Einstein Agent"** user license. This license type **cannot have permission sets assigned** — not via CLI, not via Apex DML, not via the UI. This is enforced at the Salesforce platform level (FIELD_INTEGRITY_EXCEPTION).
+> **Platform architecture — Dedicated Agent Service Account:**
 >
-> **Agentforce ASAs do not use the bot user's permissions for data access.** They use a designated **Running User** — a real licensed user whose profile and permission sets govern what the agent can read/write. `Aria_Agent_Access` must be on the Running User.
+> The correct pattern is a **dedicated Einstein Agent User service account**, not a human user and not the auto-provisioned bot user.
 >
-> **Required manual step (UI only):**
-> Setup → Agentforce Studio → Aria → Settings → **Running User**
-> Set to: `dmckee@fdecapstone.com.161026` (already has `Aria_Agent_Access` assigned)
+> **Step 1 — Create the service account via Apex (not metadata — LicenseId must be null):**
+> ```apex
+> String orgId = UserInfo.getOrganizationId().left(15).toLowerCase();
+> String username = 'aria_agent@' + orgId + '.ext';
+> Profile p = [SELECT Id FROM Profile WHERE Name = 'Einstein Agent User' LIMIT 1];
+> insert new User(FirstName='Aria', LastName='Agent', Email='aria_agent@fdecapstone.com',
+>     Username=username, Alias='aria', TimeZoneSidKey='America/Los_Angeles',
+>     LocaleSidKey='en_US', EmailEncodingKey='UTF-8', LanguageLocaleKey='en_US',
+>     ProfileId=p.Id, IsActive=true);
+> ```
+>
+> **Step 2 — Assign system PS:**
+> ```bash
+> sf org assign permset --name AgentforceServiceAgentUser --on-behalf-of aria_agent@<orgId>.ext --target-org FdeCap
+> ```
+>
+> **Step 3 — Aria_Agent_Access must have NO license restriction (LicenseId = null).**
+> The metadata API always defaults PSs to the Salesforce UserLicense. To avoid this, create/recreate `Aria_Agent_Access` via Apex DML with no `LicenseId` field set — do NOT deploy it via `sf project deploy` after this point or the license will be reset. See the recreation script in `/tmp/recreate_aria_ps.apex`.
+>
+> **Step 4 — Assign Aria_Agent_Access to service account via CLI (works once PS is license-agnostic):**
+> ```bash
+> sf org assign permset --name Aria_Agent_Access --on-behalf-of aria_agent@<orgId>.ext --target-org FdeCap
+> ```
+>
+> **Step 5 — Set `default_agent_user` in `Aria.agent`:**
+> ```yaml
+> config:
+>     default_agent_user: "aria_agent@<orgId>.ext"
+> ```
 
 1. Ensure `Aria_Agent_Access` includes Read+Edit on `MessagingSession` (already in the PS from TASK-D1). Verify:
    ```bash
