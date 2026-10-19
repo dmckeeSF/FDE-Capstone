@@ -33,7 +33,7 @@
 
 **Bob types:** `I need to change my reservation date`
 
-**Expected:** Aria routes to reservation_support, identifies Bob's booking reference from session context, retrieves current reservation details.
+**Expected:** Aria routes to reservation_support, identifies Bob's booking reference (`RES-000024`) from session context, retrieves current reservation details.
 
 **Bob types:** `November 15th`
 
@@ -100,4 +100,4 @@
 | Loyalty Tier | Gold |
 | Email | bobgarcia@example.com |
 | Key Reservation | The Golden Fork, Nov 8 2026, 7:00 PM, 2 guests |
-| Booking Reference | Auto-assigned (RES-000021+) |
+| Booking Reference | RES-000024 |
