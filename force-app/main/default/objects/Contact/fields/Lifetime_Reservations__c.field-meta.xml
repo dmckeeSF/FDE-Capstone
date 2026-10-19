@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lifetime_Reservations__c</fullName>
+    <label>Lifetime Reservations</label>
+    <summaryForeignKey>Reservation__c.Diner__c</summaryForeignKey>
+    <summaryOperation>COUNT</summaryOperation>
+    <type>Summary</type>
+</CustomField>
