@@ -89,6 +89,10 @@
                 <behavior>Edit</behavior>
                 <field>AssistantPhone</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Lifetime_Reservations__c</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
