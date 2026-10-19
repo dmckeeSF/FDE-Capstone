@@ -100,4 +100,4 @@
 | Loyalty Tier | Gold |
 | Email | bobgarcia@example.com |
 | Key Reservation | The Golden Fork, Nov 8 2026, 7:00 PM, 2 guests |
-| Key Booking Reference | GF8K2MNX (Golden Fork, Nov 8) |
+| Booking Reference | Auto-assigned (RES-000021+) |
