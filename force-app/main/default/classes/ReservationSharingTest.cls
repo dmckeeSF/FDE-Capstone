@@ -6,6 +6,7 @@ private class ReservationSharingTest {
         Id restaurantRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
         Id communityProfileId = [SELECT Id FROM Profile WHERE Name = 'Customer Community Plus Login User' LIMIT 1].Id;
 
+        // Non-setup objects first (Account, Contact, Reservation)
         Account rest = new Account(Name = 'Test Grill', RecordTypeId = restaurantRT);
         insert rest;
 
@@ -13,41 +14,44 @@ private class ReservationSharingTest {
         Contact bob   = new Contact(FirstName = 'Bob',   LastName = 'Share', Email = 'bob.share@test.com',   AccountId = rest.Id);
         insert new List<Contact>{ alice, bob };
 
-        User aliceUser = new User(
-            ProfileId = communityProfileId, ContactId = alice.Id,
-            FirstName = 'Alice', LastName = 'Share', Email = 'alice.share@test.com',
-            Username = 'alice.share.test@ariaportal.test', Alias = 'ashare',
-            CommunityNickname = 'aliceshare1', TimeZoneSidKey = 'America/New_York',
-            LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US'
-        );
-        User bobUser = new User(
-            ProfileId = communityProfileId, ContactId = bob.Id,
-            FirstName = 'Bob', LastName = 'Share', Email = 'bob.share@test.com',
-            Username = 'bob.share.test@ariaportal.test', Alias = 'bshare',
-            CommunityNickname = 'bobshare1', TimeZoneSidKey = 'America/New_York',
-            LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US'
-        );
-        insert new List<User>{ aliceUser, bobUser };
-
-        Reservation__c aliceRes = new Reservation__c(
-            Diner__c = alice.Id, Restaurant__c = rest.Id,
-            Reservation_Date__c = Date.today().addDays(7),
-            Reservation_Time__c = Time.newInstance(19, 0, 0, 0),
-            Party_Size__c = 2, Status__c = 'Confirmed'
-        );
-        Reservation__c bobRes = new Reservation__c(
-            Diner__c = bob.Id, Restaurant__c = rest.Id,
-            Reservation_Date__c = Date.today().addDays(14),
-            Reservation_Time__c = Time.newInstance(19, 0, 0, 0),
-            Party_Size__c = 2, Status__c = 'Confirmed'
-        );
-        insert new List<Reservation__c>{ aliceRes, bobRes };
-
-        Id psId = [SELECT Id FROM PermissionSet WHERE Name = 'Diner_Community_Access' LIMIT 1].Id;
-        insert new List<PermissionSetAssignment>{
-            new PermissionSetAssignment(PermissionSetId = psId, AssigneeId = aliceUser.Id),
-            new PermissionSetAssignment(PermissionSetId = psId, AssigneeId = bobUser.Id)
+        insert new List<Reservation__c>{
+            new Reservation__c(
+                Diner__c = alice.Id, Restaurant__c = rest.Id,
+                Reservation_Date__c = Date.today().addDays(7),
+                Reservation_Time__c = Time.newInstance(19, 0, 0, 0),
+                Party_Size__c = 2, Status__c = 'Confirmed'
+            ),
+            new Reservation__c(
+                Diner__c = bob.Id, Restaurant__c = rest.Id,
+                Reservation_Date__c = Date.today().addDays(14),
+                Reservation_Time__c = Time.newInstance(19, 0, 0, 0),
+                Party_Size__c = 2, Status__c = 'Confirmed'
+            )
         };
+
+        // Setup objects (User + PSA) must be in System.runAs to avoid MIXED_DML_OPERATION
+        Id psId = [SELECT Id FROM PermissionSet WHERE Name = 'Diner_Community_Access' LIMIT 1].Id;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            User aliceUser = new User(
+                ProfileId = communityProfileId, ContactId = alice.Id,
+                FirstName = 'Alice', LastName = 'Share', Email = 'alice.share@test.com',
+                Username = 'alice.share.test@ariaportal.test', Alias = 'ashare',
+                CommunityNickname = 'aliceshare1', TimeZoneSidKey = 'America/New_York',
+                LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US'
+            );
+            User bobUser = new User(
+                ProfileId = communityProfileId, ContactId = bob.Id,
+                FirstName = 'Bob', LastName = 'Share', Email = 'bob.share@test.com',
+                Username = 'bob.share.test@ariaportal.test', Alias = 'bshare',
+                CommunityNickname = 'bobshare1', TimeZoneSidKey = 'America/New_York',
+                LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US'
+            );
+            insert new List<User>{ aliceUser, bobUser };
+            insert new List<PermissionSetAssignment>{
+                new PermissionSetAssignment(PermissionSetId = psId, AssigneeId = aliceUser.Id),
+                new PermissionSetAssignment(PermissionSetId = psId, AssigneeId = bobUser.Id)
+            };
+        }
     }
 
     @IsTest
