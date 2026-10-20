@@ -22,18 +22,17 @@ public with sharing class ZipcodeRoutingAction {
             if (String.isNotBlank(req.zipcode)) zips.add(req.zipcode.trim());
         }
 
-        // Single SOQL for all matching metadata records
+        // Query all CMT records — Custom Metadata doesn't support OR in WHERE;
+        // record count is always small (one row per zip region) so a full scan is fine.
         Map<String, String> queueByZip = new Map<String, String>();
         String defaultQueue = 'Diner_Support_General';
         for (Zipcode_Queue_Mapping__mdt m : [
             SELECT Zipcode__c, Queue_Developer_Name__c, Is_Default__c
             FROM Zipcode_Queue_Mapping__mdt
-            WHERE Zipcode__c IN :zips
-               OR Is_Default__c = true
         ]) {
             if (m.Is_Default__c) {
                 defaultQueue = m.Queue_Developer_Name__c;
-            } else {
+            } else if (String.isNotBlank(m.Zipcode__c)) {
                 queueByZip.put(m.Zipcode__c, m.Queue_Developer_Name__c);
             }
         }
