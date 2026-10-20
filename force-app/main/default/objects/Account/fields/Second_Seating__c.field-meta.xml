@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Second_Seating__c</fullName>
+    <defaultValue>&apos;20:00&apos;</defaultValue>
+    <label>Second Seating Start</label>
+    <length>5</length>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

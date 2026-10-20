@@ -20,6 +20,21 @@ public with sharing class ReservationApiClient {
         }
     }
 
+    // ─── GET /reservations/availability ─────────────────────────────────────
+
+    public static ApiResponse getAvailability(String restaurantName, String dateStr, String timeStr, Integer partySize) {
+        String endpoint = 'callout:Reservation_API' + BASE_PATH + 'availability'
+            + '?restaurant=' + EncodingUtil.urlEncode(restaurantName, 'UTF-8')
+            + '&date=' + EncodingUtil.urlEncode(dateStr, 'UTF-8')
+            + (String.isNotBlank(timeStr) ? '&time=' + EncodingUtil.urlEncode(timeStr, 'UTF-8') : '')
+            + (partySize != null ? '&partySize=' + partySize : '');
+        HttpRequest req = new HttpRequest();
+        req.setMethod('GET');
+        req.setEndpoint(endpoint);
+        req.setHeader('Accept', 'application/json');
+        return send(req);
+    }
+
     // ─── GET /reservations/{bookingRef} ──────────────────────────────────────
 
     public static ApiResponse getReservation(String bookingRef) {
