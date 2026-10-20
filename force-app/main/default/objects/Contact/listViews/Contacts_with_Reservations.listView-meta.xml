@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contacts_with_Reservations</fullName>
+    <columns>FULL_NAME</columns>
+    <columns>ACCOUNT.NAME</columns>
+    <columns>CONTACT.PHONE1</columns>
+    <columns>Loyalty_Tier__c</columns>
+    <columns>Lifetime_Reservations__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Lifetime_Reservations__c</field>
+        <operation>greaterThan</operation>
+        <value>0</value>
+    </filters>
+    <label>Contacts with Reservations</label>
+</ListView>
