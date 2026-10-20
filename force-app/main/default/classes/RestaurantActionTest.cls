@@ -114,10 +114,61 @@ private class RestaurantActionTest {
 
     @IsTest
     static void testCheckAvailability_hasSlots() {
-        // Max 10, 3 booked on TEST_DATE → 7 available
         CheckRestaurantAvailabilityAction.AvailabilityRequest req =
             new CheckRestaurantAvailabilityAction.AvailabilityRequest();
         req.restaurantName  = RESTAURANT_NAME;
+        req.reservationDate = TEST_DATE;
+        req.partySize       = 2;
+
+        Test.startTest();
+        List<CheckRestaurantAvailabilityAction.AvailabilityResult> results =
+            CheckRestaurantAvailabilityAction.checkAvailability(
+                new List<CheckRestaurantAvailabilityAction.AvailabilityRequest>{ req }
+            );
+        Test.stopTest();
+
+        System.assertEquals(1, results.size(), 'Should return one result');
+        CheckRestaurantAvailabilityAction.AvailabilityResult result = results[0];
+        System.assertEquals(true, result.isAvailable, 'Should be available');
+        System.assert(!result.availableSlots.isEmpty(), 'Should have available time slots');
+        System.assert(result.message.contains(RESTAURANT_NAME), 'Message should contain restaurant name');
+    }
+
+    @IsTest
+    static void testCheckAvailability_noSlots() {
+        // Set Total_Covers__c = 1 so party_size=2 cannot fit in any slot
+        Account restaurant = [
+            SELECT Id FROM Account
+            WHERE RecordType.DeveloperName = 'Restaurant'
+              AND Name = :RESTAURANT_NAME
+            LIMIT 1
+        ];
+        restaurant.Total_Covers__c = 1;
+        update restaurant;
+
+        CheckRestaurantAvailabilityAction.AvailabilityRequest req =
+            new CheckRestaurantAvailabilityAction.AvailabilityRequest();
+        req.restaurantName  = RESTAURANT_NAME;
+        req.reservationDate = TEST_DATE;
+        req.partySize       = 2;
+
+        Test.startTest();
+        List<CheckRestaurantAvailabilityAction.AvailabilityResult> results =
+            CheckRestaurantAvailabilityAction.checkAvailability(
+                new List<CheckRestaurantAvailabilityAction.AvailabilityRequest>{ req }
+            );
+        Test.stopTest();
+
+        CheckRestaurantAvailabilityAction.AvailabilityResult result = results[0];
+        System.assertEquals(false, result.isAvailable, 'Should not be available when capacity exceeded');
+        System.assert(result.availableSlots.isEmpty(), 'Available slots should be empty');
+    }
+
+    @IsTest
+    static void testCheckAvailability_notFound() {
+        CheckRestaurantAvailabilityAction.AvailabilityRequest req =
+            new CheckRestaurantAvailabilityAction.AvailabilityRequest();
+        req.restaurantName  = 'ZZZNOMATCH';
         req.reservationDate = TEST_DATE;
 
         Test.startTest();
@@ -129,76 +180,6 @@ private class RestaurantActionTest {
 
         System.assertEquals(1, results.size(), 'Should return one result');
         CheckRestaurantAvailabilityAction.AvailabilityResult result = results[0];
-        System.assertEquals(true,  result.isAvailable,    'Should be available');
-        System.assertEquals(7,     result.availableSlots, 'Should have 7 slots available');
-        System.assertEquals(10,    result.maxPartySize,   'Max party size should be 10');
-        System.assertEquals(3,     result.bookedCount,    'Booked count should be 3');
-        System.assert(result.message.contains('7'), 'Message should mention slot count');
-        System.assert(result.message.contains(RESTAURANT_NAME), 'Message should contain restaurant name');
-    }
-
-    @IsTest
-    static void testCheckAvailability_noSlots() {
-        // Add reservations to fill the restaurant (need 7 more to hit Max_Party_Size=10)
-        Account restaurant = [
-            SELECT Id FROM Account
-            WHERE RecordType.DeveloperName = 'Restaurant'
-              AND Name = :RESTAURANT_NAME
-            LIMIT 1
-        ];
-        Contact diner = [SELECT Id FROM Contact WHERE LastName = 'TestDiner' LIMIT 1];
-
-        List<Reservation__c> extras = new List<Reservation__c>();
-        for (Integer i = 0; i < 7; i++) {
-            extras.add(new Reservation__c(
-                Restaurant__c       = restaurant.Id,
-                Diner__c            = diner.Id,
-                Reservation_Date__c = TEST_DATE,
-                Reservation_Time__c = Time.newInstance(19, 0, 0, 0),
-                Party_Size__c       = 1,
-                Status__c           = 'Confirmed'
-            ));
-        }
-        insert extras;
-
-        CheckRestaurantAvailabilityAction.AvailabilityRequest req =
-            new CheckRestaurantAvailabilityAction.AvailabilityRequest();
-        req.restaurantName  = RESTAURANT_NAME;
-        req.reservationDate = TEST_DATE;
-
-        Test.startTest();
-        List<CheckRestaurantAvailabilityAction.AvailabilityResult> results =
-            CheckRestaurantAvailabilityAction.checkAvailability(
-                new List<CheckRestaurantAvailabilityAction.AvailabilityRequest>{ req }
-            );
-        Test.stopTest();
-
-        CheckRestaurantAvailabilityAction.AvailabilityResult result = results[0];
-        System.assertEquals(false, result.isAvailable,    'Should not be available when fully booked');
-        System.assertEquals(0,     result.availableSlots, 'Available slots should be 0');
-        System.assertEquals(10,    result.bookedCount,    'Booked count should be 10');
-        System.assert(result.message.contains('no availability'), 'Message should indicate no availability');
-    }
-
-    @IsTest
-    static void testCheckAvailability_notFound() {
-        CheckRestaurantAvailabilityAction.AvailabilityRequest req =
-            new CheckRestaurantAvailabilityAction.AvailabilityRequest();
-        req.restaurantName  = 'ZZZNOMATCH';
-        req.reservationDate = TEST_DATE;
-
-        Test.startTest();
-        Boolean threw = false;
-        try {
-            CheckRestaurantAvailabilityAction.checkAvailability(
-                new List<CheckRestaurantAvailabilityAction.AvailabilityRequest>{ req }
-            );
-        } catch (AuraHandledException ex) {
-            threw = true;
-            System.assert(ex.getMessage() != null, 'Exception message should not be null');
-        }
-        Test.stopTest();
-
-        System.assert(threw, 'AuraHandledException should have been thrown for missing restaurant');
+        System.assertEquals(false, result.isAvailable, 'Should not be available for unknown restaurant');
     }
 }
