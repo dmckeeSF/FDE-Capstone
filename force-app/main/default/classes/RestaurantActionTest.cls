@@ -110,10 +110,30 @@ private class RestaurantActionTest {
         System.assert(threw, 'AuraHandledException should have been thrown for missing restaurant');
     }
 
+    // ─── Callout mock ─────────────────────────────────────────────────────────────
+
+    private class AvailabilityMock implements HttpCalloutMock {
+        private Integer statusCode;
+        private String  body;
+        AvailabilityMock(Integer sc, String b) { statusCode = sc; body = b; }
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(statusCode);
+            res.setBody(body);
+            return res;
+        }
+    }
+
+    private static final String SLOTS_JSON = '{"restaurant":"' + RESTAURANT_NAME + '","date":"2027-03-15","availableSlots":["17:30","17:45","18:00"],"timeZone":"America/New_York"}';
+    private static final String NO_SLOTS_JSON = '{"restaurant":"' + RESTAURANT_NAME + '","date":"2027-03-15","availableSlots":[],"timeZone":"America/New_York"}';
+    private static final String NOT_FOUND_JSON_AVAIL = '{"error":"Restaurant not found"}';
+
     // ─── CheckRestaurantAvailabilityAction ────────────────────────────────────────
 
     @IsTest
     static void testCheckAvailability_hasSlots() {
+        Test.setMock(HttpCalloutMock.class, new AvailabilityMock(200, SLOTS_JSON));
+
         CheckRestaurantAvailabilityAction.AvailabilityRequest req =
             new CheckRestaurantAvailabilityAction.AvailabilityRequest();
         req.restaurantName  = RESTAURANT_NAME;
@@ -136,15 +156,7 @@ private class RestaurantActionTest {
 
     @IsTest
     static void testCheckAvailability_noSlots() {
-        // Set Total_Covers__c = 1 so party_size=2 cannot fit in any slot
-        Account restaurant = [
-            SELECT Id FROM Account
-            WHERE RecordType.DeveloperName = 'Restaurant'
-              AND Name = :RESTAURANT_NAME
-            LIMIT 1
-        ];
-        restaurant.Total_Covers__c = 1;
-        update restaurant;
+        Test.setMock(HttpCalloutMock.class, new AvailabilityMock(200, NO_SLOTS_JSON));
 
         CheckRestaurantAvailabilityAction.AvailabilityRequest req =
             new CheckRestaurantAvailabilityAction.AvailabilityRequest();
@@ -160,12 +172,14 @@ private class RestaurantActionTest {
         Test.stopTest();
 
         CheckRestaurantAvailabilityAction.AvailabilityResult result = results[0];
-        System.assertEquals(false, result.isAvailable, 'Should not be available when capacity exceeded');
-        System.assert(result.availableSlots.isEmpty(), 'Available slots should be empty');
+        System.assertEquals(false, result.isAvailable, 'Should not be available when fully booked');
+        System.assert(result.availableSlots.isEmpty(), 'Available slots list should be empty');
     }
 
     @IsTest
     static void testCheckAvailability_notFound() {
+        Test.setMock(HttpCalloutMock.class, new AvailabilityMock(404, NOT_FOUND_JSON_AVAIL));
+
         CheckRestaurantAvailabilityAction.AvailabilityRequest req =
             new CheckRestaurantAvailabilityAction.AvailabilityRequest();
         req.restaurantName  = 'ZZZNOMATCH';
