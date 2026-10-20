@@ -32,13 +32,15 @@ public with sharing class CheckRestaurantAvailabilityAction {
         result.isAvailable    = !slots.isEmpty();
         result.availableSlots = slots;
         result.restaurantName = String.valueOf(body.get('restaurant'));
-        result.reservationDate           = String.valueOf(body.get('date'));
+        result.reservationDate = String.valueOf(body.get('date'));
+        result.timeZone        = body.get('timeZone') != null ? String.valueOf(body.get('timeZone')) : null;
 
+        String tzSuffix = String.isNotBlank(result.timeZone) ? ' (' + result.timeZone + ')' : '';
         if (slots.isEmpty()) {
             result.message = request.restaurantName + ' is fully booked on ' + request.reservationDate + '.';
         } else {
             result.message = 'Available times at ' + result.restaurantName
-                             + ' on ' + result.reservationDate + ': ' + String.join(slots, ', ') + '.';
+                             + ' on ' + result.reservationDate + tzSuffix + ': ' + String.join(slots, ', ') + '.';
         }
 
         return new List<AvailabilityResult>{ result };
@@ -56,6 +58,7 @@ public with sharing class CheckRestaurantAvailabilityAction {
         @InvocableVariable public List<String> availableSlots;
         @InvocableVariable public String       restaurantName;
         @InvocableVariable public String       reservationDate;
+        @InvocableVariable public String       timeZone;
         @InvocableVariable public String       message;
     }
 }

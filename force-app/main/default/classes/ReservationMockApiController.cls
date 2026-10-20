@@ -199,7 +199,7 @@ global without sharing class ReservationMockApiController {
         }
 
         List<Account> restaurants = [
-            SELECT Id, Name, First_Seating__c, Second_Seating__c, Total_Covers__c
+            SELECT Id, Name, First_Seating__c, Second_Seating__c, Total_Covers__c, Dining_Time_Zone__c
             FROM Account
             WHERE RecordType.DeveloperName = 'Restaurant'
               AND Name LIKE :('%' + restaurantName + '%')
@@ -274,7 +274,8 @@ global without sharing class ReservationMockApiController {
             'date'           => dateStr,
             'requestedTime'  => timeStr,
             'partySize'      => partySize,
-            'availableSlots' => slots
+            'availableSlots' => slots,
+            'timeZone'       => String.isNotBlank(rest.Dining_Time_Zone__c) ? rest.Dining_Time_Zone__c : 'America/New_York'
         };
 
         res.statusCode = 200;
