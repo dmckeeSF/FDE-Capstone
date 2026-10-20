@@ -3,15 +3,21 @@ private class ReservationSharingTest {
 
     @TestSetup
     static void setup() {
-        Id restaurantRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Id restaurantRT    = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Id customerGroupRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Customer_Group' LIMIT 1].Id;
         Id communityProfileId = [SELECT Id FROM Profile WHERE Name = 'Customer Community Plus Login User' LIMIT 1].Id;
 
         // Non-setup objects first (Account, Contact, Reservation)
         Account rest = new Account(Name = 'Test Grill', RecordTypeId = restaurantRT);
         insert rest;
 
-        Contact alice = new Contact(FirstName = 'Alice', LastName = 'Share', Email = 'alice.share@test.com', AccountId = rest.Id);
-        Contact bob   = new Contact(FirstName = 'Bob',   LastName = 'Share', Email = 'bob.share@test.com',   AccountId = rest.Id);
+        // Individual diner accounts — one per diner (Customer_Group RT)
+        Account aliceAcct = new Account(Name = 'Alice Share Account', RecordTypeId = customerGroupRT);
+        Account bobAcct   = new Account(Name = 'Bob Share Account',   RecordTypeId = customerGroupRT);
+        insert new List<Account>{ aliceAcct, bobAcct };
+
+        Contact alice = new Contact(FirstName = 'Alice', LastName = 'Share', Email = 'alice.share@test.com', AccountId = aliceAcct.Id);
+        Contact bob   = new Contact(FirstName = 'Bob',   LastName = 'Share', Email = 'bob.share@test.com',   AccountId = bobAcct.Id);
         insert new List<Contact>{ alice, bob };
 
         insert new List<Reservation__c>{
@@ -81,17 +87,26 @@ private class ReservationSharingTest {
     static void testDinerCanCreateOwnReservation() {
         User bobUser = [SELECT Id FROM User WHERE Username = 'bob.share.test@ariaportal.test' LIMIT 1];
         Contact bob = [SELECT Id FROM Contact WHERE LastName = 'Share' AND FirstName = 'Bob' LIMIT 1];
-        Account rest = [SELECT Id FROM Account WHERE Name = 'Test Grill' LIMIT 1];
 
+        // CreateReservationAction runs without sharing (agent context) so Bob can book
+        // at any restaurant without needing direct Account record access.
         System.runAs(bobUser) {
-            Reservation__c newRes = new Reservation__c(
-                Diner__c = bob.Id, Restaurant__c = rest.Id,
-                Reservation_Date__c = Date.today().addDays(21),
-                Reservation_Time__c = Time.newInstance(18, 0, 0, 0),
-                Party_Size__c = 3, Status__c = 'Confirmed'
-            );
-            insert newRes;
-            Assert.isNotNull(newRes.Id, 'Bob should be able to create a reservation');
+            CreateReservationAction.CreateRequest req = new CreateReservationAction.CreateRequest();
+            req.restaurantName  = 'Test Grill';
+            req.reservationDate = Date.today().addDays(21);
+            req.reservationTime = '18:00';
+            req.contactId       = bob.Id;
+            req.partySize       = 3;
+
+            Test.startTest();
+            List<CreateReservationAction.CreateResult> results =
+                CreateReservationAction.createReservation(
+                    new List<CreateReservationAction.CreateRequest>{ req }
+                );
+            Test.stopTest();
+
+            Assert.isTrue(results[0].isSuccess, 'Bob should be able to create a reservation through the action');
+            Assert.isNotNull(results[0].bookingReference, 'Booking reference should be returned');
         }
     }
 }

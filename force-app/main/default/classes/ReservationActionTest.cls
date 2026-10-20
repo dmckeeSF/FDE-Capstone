@@ -40,6 +40,30 @@ private class ReservationActionTest {
 
     private static final String ERROR_BODY = '{"error":"Internal server error"}';
 
+    // ─── Test data for ownership-verified actions ─────────────────────────────
+
+    @TestSetup
+    static void makeData() {
+        Id restaurantRT    = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant'      LIMIT 1].Id;
+        Id customerGroupRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Customer_Group'  LIMIT 1].Id;
+
+        Account rest      = new Account(Name = 'Test Cancel Bistro', RecordTypeId = restaurantRT);
+        Account dinerAcct = new Account(Name = 'Test Diner Account',  RecordTypeId = customerGroupRT);
+        insert new List<Account>{ rest, dinerAcct };
+
+        Contact c = new Contact(FirstName = 'Test', LastName = 'Canceller', Email = 'test.canceller@test.com', AccountId = dinerAcct.Id);
+        insert c;
+
+        insert new Reservation__c(
+            Diner__c            = c.Id,
+            Restaurant__c       = rest.Id,
+            Reservation_Date__c = Date.today().addDays(7),
+            Reservation_Time__c = Time.newInstance(19, 0, 0, 0),
+            Party_Size__c       = 2,
+            Status__c           = 'Confirmed'
+        );
+    }
+
     // ─── GetReservationAction — happy path ────────────────────────────────────
 
     @IsTest
@@ -142,10 +166,13 @@ private class ReservationActionTest {
 
     @IsTest
     static void testCancelReservation_success() {
-        String cancelledBody = '{"bookingReference":"' + BOOKING_REF + '","status":"Cancelled"}';
+        Reservation__c res = [SELECT Booking_Reference__c, Diner__c FROM Reservation__c LIMIT 1];
+        String cancelledBody = '{"bookingReference":"' + res.Booking_Reference__c + '","status":"Cancelled"}';
         Test.setMock(HttpCalloutMock.class, new MockHttp(200, cancelledBody));
+
         CancelReservationAction.CancelInput inp = new CancelReservationAction.CancelInput();
-        inp.bookingReference  = BOOKING_REF;
+        inp.bookingReference   = res.Booking_Reference__c;
+        inp.contactId          = res.Diner__c;
         inp.cancellationReason = 'Change of plans';
 
         Test.startTest();
@@ -154,16 +181,19 @@ private class ReservationActionTest {
         Test.stopTest();
 
         System.assertEquals(1, results.size(), 'Should return one confirmation message');
-        System.assert(results[0].contains(BOOKING_REF),    'Confirmation should contain booking ref');
-        System.assert(results[0].contains('cancelled'),    'Confirmation should say cancelled');
+        System.assert(results[0].contains(res.Booking_Reference__c), 'Confirmation should contain booking ref');
+        System.assert(results[0].contains('cancelled'), 'Confirmation should say cancelled');
     }
 
     @IsTest
     static void testCancelReservation_noReason() {
-        String cancelledBody = '{"bookingReference":"' + BOOKING_REF + '","status":"Cancelled"}';
+        Reservation__c res = [SELECT Booking_Reference__c, Diner__c FROM Reservation__c LIMIT 1];
+        String cancelledBody = '{"bookingReference":"' + res.Booking_Reference__c + '","status":"Cancelled"}';
         Test.setMock(HttpCalloutMock.class, new MockHttp(200, cancelledBody));
+
         CancelReservationAction.CancelInput inp = new CancelReservationAction.CancelInput();
-        inp.bookingReference = BOOKING_REF;
+        inp.bookingReference = res.Booking_Reference__c;
+        inp.contactId        = res.Diner__c;
 
         Test.startTest();
         List<String> results =
@@ -205,8 +235,11 @@ private class ReservationActionTest {
         return a;
     }
 
-    private static Contact createTestDiner(Id accountId) {
-        Contact c = new Contact(FirstName = 'Create', LastName = 'Test', Email = 'createtest@test.com', AccountId = accountId);
+    private static Contact createTestDiner() {
+        Id customerGroupRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Customer_Group' LIMIT 1].Id;
+        Account dinerAcct = new Account(Name = 'Create Test Diner Account', RecordTypeId = customerGroupRT);
+        insert dinerAcct;
+        Contact c = new Contact(FirstName = 'Create', LastName = 'Test', Email = 'createtest@test.com', AccountId = dinerAcct.Id);
         insert c;
         return c;
     }
@@ -214,7 +247,7 @@ private class ReservationActionTest {
     @IsTest
     static void testCreateReservation_success() {
         Account rest = createTestRestaurant();
-        Contact diner = createTestDiner(rest.Id);
+        Contact diner = createTestDiner();
 
         CreateReservationAction.CreateRequest req = new CreateReservationAction.CreateRequest();
         req.restaurantName  = RESTAURANT_NAME;
@@ -240,7 +273,7 @@ private class ReservationActionTest {
     @IsTest
     static void testCreateReservation_restaurantNotFound() {
         Account rest = createTestRestaurant();
-        Contact diner = createTestDiner(rest.Id);
+        Contact diner = createTestDiner();
 
         CreateReservationAction.CreateRequest req = new CreateReservationAction.CreateRequest();
         req.restaurantName  = 'No Such Restaurant XYZ';

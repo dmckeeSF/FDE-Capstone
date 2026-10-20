@@ -1,0 +1,361 @@
+/* ── Container ──────────────────────────────────────────────────────────── */
+.aria-booking {
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    color: #1d2228;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.booking-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+    color: #032d60;
+}
+.booking-header .subtitle {
+    font-size: 1rem;
+    color: #706e6b;
+    margin: 0 0 2rem;
+}
+
+/* ── Step Rail ───────────────────────────────────────────────────────────── */
+.step-rail {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0.45;
+    transition: opacity 0.2s;
+}
+.step-indicator.active  { opacity: 1; }
+.step-indicator.done    { opacity: 0.75; }
+.step-num {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #dddbda;
+    color: #444;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.step-indicator.active .step-num {
+    background: #0176d3;
+    color: #fff;
+}
+.step-indicator.done .step-num {
+    background: #04844b;
+    color: #fff;
+}
+.step-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    white-space: nowrap;
+}
+.step-connector {
+    flex: 1;
+    height: 2px;
+    background: #dddbda;
+    margin: 0 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+/* ── Error Banner ───────────────────────────────────────────────────────── */
+.error-banner {
+    background: #fce9e9;
+    border: 1px solid #c23934;
+    border-radius: 0.5rem;
+    color: #c23934;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+/* ── Restaurant Grid ─────────────────────────────────────────────────────── */
+.restaurant-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.restaurant-card {
+    border: 2px solid #dddbda;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    background: #fff;
+    overflow: hidden;
+}
+.restaurant-card:hover {
+    border-color: #0176d3;
+    box-shadow: 0 4px 12px rgba(1,118,211,0.15);
+    transform: translateY(-2px);
+}
+.restaurant-card.selected {
+    border-color: #0176d3;
+    box-shadow: 0 0 0 3px rgba(1,118,211,0.2);
+}
+.restaurant-card-inner {
+    padding: 1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    position: relative;
+}
+.restaurant-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+.restaurant-info h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #032d60;
+}
+.restaurant-desc {
+    font-size: 0.8rem;
+    color: #706e6b;
+    margin: 0 0 0.4rem;
+    line-height: 1.4;
+}
+.restaurant-seatings {
+    font-size: 0.75rem;
+    color: #444;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+.selected-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: #0176d3;
+    color: #fff;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Step 2 Form ─────────────────────────────────────────────────────────── */
+.selected-restaurant-banner {
+    background: #f3f3f3;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.selected-label { color: #706e6b; }
+.change-link {
+    background: none;
+    border: none;
+    color: #0176d3;
+    cursor: pointer;
+    font-size: 0.875rem;
+    margin-left: auto;
+    text-decoration: underline;
+    padding: 0;
+}
+.form-row {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.party-size-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.party-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.stepper-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid #dddbda;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+}
+.stepper-btn:hover:not([disabled]) { background: #f0f0f0; }
+.stepper-btn[disabled] { opacity: 0.4; cursor: default; }
+.party-count {
+    font-size: 1.25rem;
+    font-weight: 700;
+    min-width: 1.75rem;
+    text-align: center;
+}
+.loading-slots {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #706e6b;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+}
+.time-slot-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    color: #032d60;
+}
+.slot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+}
+.time-slot-btn {
+    padding: 0.5rem 1rem;
+    border: 1.5px solid #dddbda;
+    border-radius: 2rem;
+    background: #fff;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+    color: #032d60;
+}
+.time-slot-btn:hover { border-color: #0176d3; color: #0176d3; }
+.time-slot-btn.selected {
+    background: #0176d3;
+    border-color: #0176d3;
+    color: #fff;
+}
+.no-slots {
+    color: #c23934;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ── Step 3 Confirm ──────────────────────────────────────────────────────── */
+.confirm-panel h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #032d60;
+    margin: 0 0 1.25rem;
+}
+.confirm-summary {
+    background: #f9f9f9;
+    border: 1px solid #dddbda;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.confirm-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.625rem;
+    font-size: 0.9375rem;
+}
+.confirm-row:last-child { margin-bottom: 0; }
+.tz-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    background: #f0f0f0;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    margin-left: 0.25rem;
+}
+
+/* ── Step 4 Confirmation Screen ──────────────────────────────────────────── */
+.confirmation-screen {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+.confirmation-icon { font-size: 3.5rem; margin-bottom: 0.75rem; }
+.confirmation-screen h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #04844b;
+    margin: 0 0 1.25rem;
+}
+.booking-ref-label { color: #706e6b; font-size: 0.875rem; margin: 0; }
+.booking-ref {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #032d60;
+    letter-spacing: 0.05em;
+    margin: 0.25rem 0 1.25rem;
+    font-family: monospace;
+}
+.confirmation-note {
+    color: #706e6b;
+    font-size: 0.875rem;
+    margin: 1rem 0 2rem;
+}
+
+/* ── Upcoming Reservations ───────────────────────────────────────────────── */
+.upcoming-section {
+    margin-top: 3rem;
+    border-top: 1px solid #dddbda;
+    padding-top: 2rem;
+}
+.upcoming-section h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #032d60;
+    margin: 0 0 1rem;
+}
+.upcoming-card {
+    background: #fff;
+    border: 1px solid #dddbda;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.upcoming-ref {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #0176d3;
+    font-weight: 700;
+    margin: 0 0 0.15rem;
+}
+.upcoming-restaurant {
+    font-weight: 600;
+    margin: 0 0 0.1rem;
+    font-size: 0.9375rem;
+}
+.upcoming-detail {
+    color: #706e6b;
+    font-size: 0.8125rem;
+    margin: 0;
+}
+
+/* ── Step actions ────────────────────────────────────────────────────────── */
+.step-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}

@@ -2,12 +2,15 @@
 private class ReservationDinerCounterTest {
 
     private static Contact createDiner(String firstName, String lastName) {
-        Account rest = new Account(
-            Name = 'Test Restaurant ' + firstName,
-            RecordTypeId = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id
-        );
+        Id restaurantRT    = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Id customerGroupRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Customer_Group' LIMIT 1].Id;
+        // Restaurant account used for Reservation.Restaurant__c lookups
+        Account rest = new Account(Name = 'Test Restaurant ' + firstName, RecordTypeId = restaurantRT);
         insert rest;
-        Contact c = new Contact(FirstName = firstName, LastName = lastName, Email = firstName + '@test.com', AccountId = rest.Id);
+        // Individual diner account — Customer_Group RT (one per diner)
+        Account dinerAcct = new Account(Name = 'Diner Account ' + firstName, RecordTypeId = customerGroupRT);
+        insert dinerAcct;
+        Contact c = new Contact(FirstName = firstName, LastName = lastName, Email = firstName + '@test.com', AccountId = dinerAcct.Id);
         insert c;
         return c;
     }
@@ -89,15 +92,13 @@ private class ReservationDinerCounterTest {
 
     @IsTest
     static void testNullDinerSkipped() {
-        // Reservation with no Diner set — trigger must not throw
-        Account rest = new Account(
-            Name = 'Test Null Diner Rest',
-            RecordTypeId = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id
-        );
+        Id restaurantRT    = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Id customerGroupRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Customer_Group' LIMIT 1].Id;
+        Account rest = new Account(Name = 'Test Null Diner Rest', RecordTypeId = restaurantRT);
         insert rest;
-        // Diner__c is required on the field, so this test verifies trigger handles empty contactIds gracefully
-        // by confirming no exception is thrown when all dinerId lookups are populated
-        Contact c = new Contact(FirstName = 'Null', LastName = 'Test', Email = 'null@test.com', AccountId = rest.Id);
+        Account dinerAcct = new Account(Name = 'Null Diner Account', RecordTypeId = customerGroupRT);
+        insert dinerAcct;
+        Contact c = new Contact(FirstName = 'Null', LastName = 'Test', Email = 'null@test.com', AccountId = dinerAcct.Id);
         insert c;
         Test.startTest();
         insert makeRes(c.Id, rest.Id);

@@ -1,0 +1,217 @@
+<template>
+    <div class="aria-booking">
+
+        <!-- ── Header ─────────────────────────────────────────────────── -->
+        <div class="booking-header">
+            <h1>Make a Reservation</h1>
+            <p class="subtitle">Find your table at one of our partner restaurants</p>
+        </div>
+
+        <!-- ── Step indicators ───────────────────────────────────────── -->
+        <div class="step-rail">
+            <div class={stepClass1}><span class="step-num">1</span><span class="step-label">Restaurant</span></div>
+            <div class="step-connector"></div>
+            <div class={stepClass2}><span class="step-num">2</span><span class="step-label">Date &amp; Time</span></div>
+            <div class="step-connector"></div>
+            <div class={stepClass3}><span class="step-num">3</span><span class="step-label">Confirm</span></div>
+        </div>
+
+        <!-- ── Error banner ───────────────────────────────────────────── -->
+        <template lwc:if={errorMessage}>
+            <div class="error-banner" role="alert">{errorMessage}</div>
+        </template>
+
+        <!-- ═══════════ STEP 1 — Restaurant Cards ════════════════════════ -->
+        <template lwc:if={isStep1}>
+            <div class="restaurant-grid">
+                <template for:each={restaurants} for:item="r">
+                    <div key={r.id} class={restaurantCardClass} data-id={r.id} onclick={handleRestaurantSelect}>
+                        <div class="restaurant-card-inner">
+                            <div class="restaurant-icon">🍽️</div>
+                            <div class="restaurant-info">
+                                <h3>{r.name}</h3>
+                                <p class="restaurant-desc">{r.description}</p>
+                                <p class="restaurant-seatings">
+                                    <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
+                                    {r.firstSeating} &amp; {r.secondSeating}
+                                    <span class="tz-label">{r.timeZone}</span>
+                                </p>
+                            </div>
+                            <template lwc:if={r.isSelected}>
+                                <div class="selected-badge">
+                                    <lightning-icon icon-name="utility:check" size="x-small"></lightning-icon>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="step-actions">
+                <lightning-button
+                    label="Next: Choose Date &amp; Time"
+                    variant="brand"
+                    disabled={noRestaurantSelected}
+                    onclick={goStep2}>
+                </lightning-button>
+            </div>
+        </template>
+
+        <!-- ═══════════ STEP 2 — Date, Party Size & Time Slots ══════════ -->
+        <template lwc:if={isStep2}>
+            <div class="step2-form">
+                <div class="selected-restaurant-banner">
+                    <span class="selected-label">Selected:</span> <strong>{selectedRestaurantName}</strong>
+                    <button class="change-link" onclick={goStep1}>Change</button>
+                </div>
+
+                <div class="form-row">
+                    <lightning-input
+                        type="date"
+                        label="Reservation Date"
+                        value={reservationDate}
+                        min={minDate}
+                        onchange={handleDateChange}
+                        required>
+                    </lightning-input>
+
+                    <div class="party-size-group">
+                        <label class="slds-form-element__label">Party Size</label>
+                        <div class="party-stepper">
+                            <button class="stepper-btn" onclick={decrementParty} disabled={partyAtMin}>−</button>
+                            <span class="party-count">{partySize}</span>
+                            <button class="stepper-btn" onclick={incrementParty} disabled={partyAtMax}>+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <template lwc:if={loadingSlots}>
+                    <div class="loading-slots">
+                        <lightning-spinner alternative-text="Checking availability..." size="small"></lightning-spinner>
+                        <span>Checking availability…</span>
+                    </div>
+                </template>
+
+                <template lwc:if={hasSlots}>
+                    <div class="time-slot-section">
+                        <h3>Available Times</h3>
+                        <div class="slot-grid">
+                            <template for:each={timeSlots} for:item="slot">
+                                <button
+                                    key={slot.slotTime}
+                                    class={slot.cssClass}
+                                    data-time={slot.slotTime}
+                                    onclick={handleSlotSelect}>
+                                    {slot.slotTime}
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <template lwc:if={noSlots}>
+                    <div class="no-slots">No availability for this date and party size. Try another date.</div>
+                </template>
+
+                <div class="step-actions">
+                    <lightning-button label="Back" variant="neutral" onclick={goStep1}></lightning-button>
+                    <lightning-button
+                        label="Next: Confirm"
+                        variant="brand"
+                        disabled={cannotProceedToStep3}
+                        onclick={goStep3}>
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+
+        <!-- ═══════════ STEP 3 — Confirm & Special Requests ════════════ -->
+        <template lwc:if={isStep3}>
+            <div class="confirm-panel">
+                <h2>Confirm your reservation</h2>
+                <div class="confirm-summary">
+                    <div class="confirm-row">
+                        <lightning-icon icon-name="standard:account" size="small"></lightning-icon>
+                        <span><strong>{selectedRestaurantName}</strong></span>
+                    </div>
+                    <div class="confirm-row">
+                        <lightning-icon icon-name="utility:event" size="small"></lightning-icon>
+                        <span>{reservationDate}</span>
+                    </div>
+                    <div class="confirm-row">
+                        <lightning-icon icon-name="utility:clock" size="small"></lightning-icon>
+                        <span>{selectedTime} <span class="tz-label">{selectedRestaurantTz}</span></span>
+                    </div>
+                    <div class="confirm-row">
+                        <lightning-icon icon-name="utility:groups" size="small"></lightning-icon>
+                        <span>{partySize} guest(s)</span>
+                    </div>
+                </div>
+
+                <lightning-textarea
+                    label="Special Requests (optional)"
+                    placeholder="Dietary restrictions, celebrations, accessibility needs…"
+                    value={specialRequests}
+                    max-length="500"
+                    onchange={handleSpecialRequests}>
+                </lightning-textarea>
+
+                <div class="step-actions">
+                    <lightning-button label="Back" variant="neutral" onclick={goStep2}></lightning-button>
+                    <lightning-button
+                        label="Book Now"
+                        variant="brand"
+                        disabled={isBooking}
+                        onclick={handleBook}>
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+
+        <!-- ═══════════ STEP 4 — Confirmation ═══════════════════════════ -->
+        <template lwc:if={isStep4}>
+            <div class="confirmation-screen">
+                <div class="confirmation-icon">✅</div>
+                <h2>You're all set!</h2>
+                <p class="booking-ref-label">Booking Reference</p>
+                <p class="booking-ref">{bookingReference}</p>
+                <div class="confirm-summary">
+                    <div class="confirm-row">{confirmedRestaurant}</div>
+                    <div class="confirm-row">{confirmedDate} at {confirmedTime}</div>
+                    <div class="confirm-row">{confirmedParty} guest(s)</div>
+                </div>
+                <p class="confirmation-note">A confirmation has been saved to your account. Aria can help you modify or cancel anytime.</p>
+                <lightning-button
+                    label="Make Another Reservation"
+                    variant="brand"
+                    onclick={resetBooking}>
+                </lightning-button>
+            </div>
+        </template>
+
+        <!-- ── My Upcoming Reservations ───────────────────────────────── -->
+        <template lwc:if={hasUpcomingReservations}>
+            <div class="upcoming-section">
+                <h2>Your Upcoming Reservations</h2>
+                <template for:each={upcomingReservations} for:item="res">
+                    <div key={res.bookingReference} class="upcoming-card">
+                        <div class="upcoming-left">
+                            <p class="upcoming-ref">{res.bookingReference}</p>
+                            <p class="upcoming-restaurant">{res.restaurantName}</p>
+                            <p class="upcoming-detail">{res.reservationDate} · {res.reservationTime} {res.tzShort} · {res.partySize} guests</p>
+                        </div>
+                        <div class="upcoming-actions">
+                            <lightning-button
+                                label="Cancel"
+                                variant="destructive-text"
+                                data-ref={res.bookingReference}
+                                onclick={handleCancelReservation}
+                                size="small">
+                            </lightning-button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+    </div>
+</template>

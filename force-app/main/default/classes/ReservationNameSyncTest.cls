@@ -3,10 +3,13 @@ private class ReservationNameSyncTest {
 
     @IsTest
     static void testNameSyncedToBookingReference() {
-        Id restaurantRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Id restaurantRT    = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Id customerGroupRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Customer_Group' LIMIT 1].Id;
         Account rest = new Account(Name = 'Test Sync Grill', RecordTypeId = restaurantRT);
         insert rest;
-        Contact diner = new Contact(FirstName = 'Sync', LastName = 'Test', Email = 'sync@test.com', AccountId = rest.Id);
+        Account dinerAcct = new Account(Name = 'Sync Diner Account', RecordTypeId = customerGroupRT);
+        insert dinerAcct;
+        Contact diner = new Contact(FirstName = 'Sync', LastName = 'Test', Email = 'sync@test.com', AccountId = dinerAcct.Id);
         insert diner;
 
         Reservation__c res = new Reservation__c(

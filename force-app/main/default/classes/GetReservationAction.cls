@@ -1,25 +1,38 @@
 /**
  * GetReservationAction
  * @InvocableMethod — retrieves reservation details by booking reference.
- * Called by the Get_Reservation_Details autolaunched flow.
- *
- * Note: The API returns "date" and "time" keys. Because those are reserved
- * identifiers in Apex, the DTO uses reservationDate / reservationTime and
- * we parse the JSON manually via Map<String, Object>.
+ * Requires contactId (from @MessagingEndUser.ContactId) to verify ownership
+ * before any callout, so no diner can read another's reservation.
  */
 public with sharing class GetReservationAction {
 
     @InvocableMethod(label='Get Reservation Details' description='Retrieves reservation details by booking reference')
-    public static List<ReservationDTO> execute(List<String> bookingReferences) {
+    public static List<ReservationDTO> execute(List<GetRequest> requests) {
         List<ReservationDTO> results = new List<ReservationDTO>();
-        for (String bookingRef : bookingReferences) {
-            ReservationApiClient.ApiResponse resp = ReservationApiClient.getReservation(bookingRef);
+        for (GetRequest req : requests) {
+            verifyOwnership(req.bookingReference, req.contactId);
+            ReservationApiClient.ApiResponse resp = ReservationApiClient.getReservation(req.bookingReference);
             if (!resp.isSuccess) {
                 throw new AuraHandledException(resp.body);
             }
             results.add(parseDTO(resp.body));
         }
         return results;
+    }
+
+    private static void verifyOwnership(String bookingRef, String contactId) {
+        if (String.isBlank(contactId)) {
+            throw new AuraHandledException('Contact ID required for reservation access.');
+        }
+        List<Reservation__c> check = [
+            SELECT Id FROM Reservation__c
+            WHERE Booking_Reference__c = :bookingRef
+              AND Diner__c             = :contactId
+            LIMIT 1
+        ];
+        if (check.isEmpty()) {
+            throw new AuraHandledException('Reservation not found.');
+        }
     }
 
     @TestVisible
@@ -35,6 +48,11 @@ public with sharing class GetReservationAction {
         dto.partySize          = (Integer) m.get('partySize');
         dto.specialRequests    = (String)  m.get('specialRequests');
         return dto;
+    }
+
+    public class GetRequest {
+        @InvocableVariable(required=true label='Booking Reference') public String bookingReference;
+        @InvocableVariable(required=true label='Contact Id')        public String contactId;
     }
 
     public class ReservationDTO {
