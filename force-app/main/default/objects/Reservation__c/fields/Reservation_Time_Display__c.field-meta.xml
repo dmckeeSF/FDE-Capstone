@@ -2,9 +2,9 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Reservation_Time_Display__c</fullName>
     <externalId>false</externalId>
-    <formula>IF(ISBLANK(TEXT(Restaurant__r.Time_Zone__c)),
+    <formula>IF(ISBLANK(Restaurant__r.Dining_Time_Zone__c),
   TEXT(Reservation_Time__c),
-  TEXT(Reservation_Time__c) &amp; " (" &amp; TEXT(Restaurant__r.Time_Zone__c) &amp; ")"
+  TEXT(Reservation_Time__c) &amp; " (" &amp; Restaurant__r.Dining_Time_Zone__c &amp; ")"
 )</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Reservation Time (Local)</label>

@@ -92,6 +92,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Account.Dining_Time_Zone__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Account.Dress_Code__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -293,6 +298,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Reservation__c.Original_Reservation_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Reservation__c.Reservation_Time_Display__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
