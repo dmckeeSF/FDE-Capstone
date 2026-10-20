@@ -2,8 +2,14 @@ public with sharing class CheckRestaurantAvailabilityAction {
 
     @InvocableMethod(label='Check Restaurant Availability' description='Returns up to 3 available time slots near the requested time, OpenTable-style')
     public static List<AvailabilityResult> checkAvailability(List<AvailabilityRequest> requests) {
-        AvailabilityRequest request = requests[0];
+        List<AvailabilityResult> results = new List<AvailabilityResult>();
+        for (AvailabilityRequest request : requests) {
+            results.add(processOne(request));
+        }
+        return results;
+    }
 
+    private static AvailabilityResult processOne(AvailabilityRequest request) {
         ReservationApiClient.ApiResponse apiRes = ReservationApiClient.getAvailability(
             request.restaurantName,
             request.reservationDate != null ? String.valueOf(request.reservationDate) : null,
@@ -14,11 +20,11 @@ public with sharing class CheckRestaurantAvailabilityAction {
         AvailabilityResult result = new AvailabilityResult();
 
         if (!apiRes.isSuccess) {
-            result.isAvailable   = false;
+            result.isAvailable    = false;
             result.availableSlots = new List<String>();
-            result.message       = 'No availability found for ' + request.restaurantName
-                                   + ' on ' + request.reservationDate + '.';
-            return new List<AvailabilityResult>{ result };
+            result.message        = 'No availability found for ' + request.restaurantName
+                                    + ' on ' + request.reservationDate + '.';
+            return result;
         }
 
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(apiRes.body);
@@ -29,9 +35,9 @@ public with sharing class CheckRestaurantAvailabilityAction {
             for (Object s : rawSlots) slots.add(String.valueOf(s));
         }
 
-        result.isAvailable    = !slots.isEmpty();
-        result.availableSlots = slots;
-        result.restaurantName = String.valueOf(body.get('restaurant'));
+        result.isAvailable     = !slots.isEmpty();
+        result.availableSlots  = slots;
+        result.restaurantName  = String.valueOf(body.get('restaurant'));
         result.reservationDate = String.valueOf(body.get('date'));
         result.timeZone        = body.get('timeZone') != null ? String.valueOf(body.get('timeZone')) : null;
 
@@ -42,8 +48,7 @@ public with sharing class CheckRestaurantAvailabilityAction {
             result.message = 'Available times at ' + result.restaurantName
                              + ' on ' + result.reservationDate + tzSuffix + ': ' + String.join(slots, ', ') + '.';
         }
-
-        return new List<AvailabilityResult>{ result };
+        return result;
     }
 
     public class AvailabilityRequest {

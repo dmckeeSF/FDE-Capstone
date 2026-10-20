@@ -8,19 +8,20 @@ public with sharing class ModifyReservationAction {
 
     @InvocableMethod(label='Modify Reservation' description='Updates date, time, or party size for a reservation')
     public static List<GetReservationAction.ReservationDTO> execute(List<ModifyInput> inputs) {
-        ModifyInput inp = inputs[0];
-        ReservationApiClient.ApiResponse resp = ReservationApiClient.modifyReservation(
-            inp.bookingReference,
-            inp.newDate,
-            inp.newTime,
-            inp.newPartySize
-        );
-        if (!resp.isSuccess) {
-            throw new AuraHandledException(resp.body);
+        List<GetReservationAction.ReservationDTO> results = new List<GetReservationAction.ReservationDTO>();
+        for (ModifyInput inp : inputs) {
+            ReservationApiClient.ApiResponse resp = ReservationApiClient.modifyReservation(
+                inp.bookingReference,
+                inp.newDate,
+                inp.newTime,
+                inp.newPartySize
+            );
+            if (!resp.isSuccess) {
+                throw new AuraHandledException(resp.body);
+            }
+            results.add(GetReservationAction.parseDTO(resp.body));
         }
-        return new List<GetReservationAction.ReservationDTO>{
-            GetReservationAction.parseDTO(resp.body)
-        };
+        return results;
     }
 
     public class ModifyInput {

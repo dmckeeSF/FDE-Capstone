@@ -8,10 +8,10 @@ public with sharing class GetRestaurantInfoAction {
 
     @InvocableMethod(label='Get Restaurant Info' description='Looks up a restaurant by name and returns its details')
     public static List<RestaurantDTO> getRestaurantInfo(List<String> restaurantNames) {
-        String restaurantName = restaurantNames[0];
-        String searchTerm = '%' + restaurantName + '%';
-
-        List<Account> restaurants = [
+        // Build LIKE patterns and collect results in one SOQL pass
+        // Because each name may use a LIKE search, query all restaurants once
+        // and match each input name in Apex to avoid N queries.
+        List<Account> allRestaurants = [
             SELECT Name,
                    Cuisine_Type__c,
                    Operating_Hours__c,
@@ -23,30 +23,38 @@ public with sharing class GetRestaurantInfoAction {
                    Is_Active__c
             FROM Account
             WHERE RecordType.DeveloperName = 'Restaurant'
-              AND Name LIKE :searchTerm
               AND Is_Active__c = true
-            LIMIT 1
+            ORDER BY Name
         ];
 
-        if (restaurants.isEmpty()) {
-            throw new AuraHandledException('Restaurant not found: ' + restaurantName);
+        List<RestaurantDTO> results = new List<RestaurantDTO>();
+        for (String restaurantName : restaurantNames) {
+            String term = restaurantName.toLowerCase();
+            Account match = null;
+            for (Account a : allRestaurants) {
+                if (a.Name.toLowerCase().contains(term)) {
+                    match = a;
+                    break;
+                }
+            }
+            if (match == null) {
+                throw new AuraHandledException('Restaurant not found: ' + restaurantName);
+            }
+            RestaurantDTO dto        = new RestaurantDTO();
+            dto.name                 = match.Name;
+            dto.cuisineType          = match.Cuisine_Type__c;
+            dto.operatingHours       = match.Operating_Hours__c;
+            dto.cancellationPolicy   = match.Cancellation_Policy__c;
+            dto.priceRange           = match.Price_Range__c;
+            dto.dressCode            = match.Dress_Code__c;
+            dto.accessibilityInfo    = match.Accessibility_Info__c;
+            dto.maxPartySize         = (match.Max_Party_Size__c != null)
+                                         ? Integer.valueOf(match.Max_Party_Size__c)
+                                         : null;
+            dto.isActive             = match.Is_Active__c;
+            results.add(dto);
         }
-
-        Account restaurant = restaurants[0];
-        RestaurantDTO dto = new RestaurantDTO();
-        dto.name                = restaurant.Name;
-        dto.cuisineType         = restaurant.Cuisine_Type__c;
-        dto.operatingHours      = restaurant.Operating_Hours__c;
-        dto.cancellationPolicy  = restaurant.Cancellation_Policy__c;
-        dto.priceRange          = restaurant.Price_Range__c;
-        dto.dressCode           = restaurant.Dress_Code__c;
-        dto.accessibilityInfo   = restaurant.Accessibility_Info__c;
-        dto.maxPartySize        = (restaurant.Max_Party_Size__c != null)
-                                    ? Integer.valueOf(restaurant.Max_Party_Size__c)
-                                    : null;
-        dto.isActive            = restaurant.Is_Active__c;
-
-        return new List<RestaurantDTO>{ dto };
+        return results;
     }
 
     public class RestaurantDTO {

@@ -11,12 +11,15 @@ public with sharing class GetReservationAction {
 
     @InvocableMethod(label='Get Reservation Details' description='Retrieves reservation details by booking reference')
     public static List<ReservationDTO> execute(List<String> bookingReferences) {
-        String bookingRef = bookingReferences[0];
-        ReservationApiClient.ApiResponse resp = ReservationApiClient.getReservation(bookingRef);
-        if (!resp.isSuccess) {
-            throw new AuraHandledException(resp.body);
+        List<ReservationDTO> results = new List<ReservationDTO>();
+        for (String bookingRef : bookingReferences) {
+            ReservationApiClient.ApiResponse resp = ReservationApiClient.getReservation(bookingRef);
+            if (!resp.isSuccess) {
+                throw new AuraHandledException(resp.body);
+            }
+            results.add(parseDTO(resp.body));
         }
-        return new List<ReservationDTO>{ parseDTO(resp.body) };
+        return results;
     }
 
     @TestVisible
