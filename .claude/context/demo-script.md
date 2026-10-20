@@ -53,7 +53,7 @@
 
 **Bob types:** `What's the cancellation policy if I need to cancel later?`
 
-**Expected:** Aria routes to platform_faq, calls SearchKnowledgeAction, returns policy — *"Cancellations are free up to 24 hours before your reservation. Same-day cancellations may incur a fee. As a Gold tier member, you're protected under our standard policy."*
+**Expected:** Aria routes to platform_faq, calls SearchKnowledgeAction, returns policy — *"Cancellations are free up to 24 hours before your reservation. Same-day cancellations may incur a fee. As a Platinum tier member, you're protected under our standard policy."*
 
 > *[Presenter: "Aria retained context across topic transitions — it knew we were still talking about Bob's booking without him having to repeat himself. This is the return-to-router pattern in our agent design."]*
 
@@ -97,7 +97,7 @@
 |---|---|
 | Name | Bob Garcia |
 | Membership Number | 10008165 |
-| Loyalty Tier | Gold |
+| Loyalty Tier | Platinum |
 | Email | bobgarcia@example.com |
 | Key Reservation | The Golden Fork, Nov 8 2026, 7:00 PM, 2 guests |
 | Booking Reference | RES-000024 |
