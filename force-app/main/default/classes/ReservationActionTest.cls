@@ -193,4 +193,68 @@ private class ReservationActionTest {
 
         System.assert(threw, 'AuraHandledException should have been thrown on 500');
     }
+
+    // ─── CreateReservationAction ──────────────────────────────────────────────
+
+    private static final String RESTAURANT_NAME = 'Test Create Bistro';
+
+    private static Account createTestRestaurant() {
+        Id restaurantRT = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND DeveloperName = 'Restaurant' LIMIT 1].Id;
+        Account a = new Account(Name = RESTAURANT_NAME, RecordTypeId = restaurantRT);
+        insert a;
+        return a;
+    }
+
+    private static Contact createTestDiner(Id accountId) {
+        Contact c = new Contact(FirstName = 'Create', LastName = 'Test', Email = 'createtest@test.com', AccountId = accountId);
+        insert c;
+        return c;
+    }
+
+    @IsTest
+    static void testCreateReservation_success() {
+        Account rest = createTestRestaurant();
+        Contact diner = createTestDiner(rest.Id);
+
+        CreateReservationAction.CreateRequest req = new CreateReservationAction.CreateRequest();
+        req.restaurantName  = RESTAURANT_NAME;
+        req.reservationDate = Date.today().addDays(10);
+        req.reservationTime = '19:30';
+        req.contactId       = diner.Id;
+        req.partySize       = 2;
+
+        Test.startTest();
+        List<CreateReservationAction.CreateResult> results =
+            CreateReservationAction.createReservation(new List<CreateReservationAction.CreateRequest>{ req });
+        Test.stopTest();
+
+        Assert.areEqual(1, results.size());
+        CreateReservationAction.CreateResult res = results[0];
+        Assert.isTrue(res.isSuccess, 'Reservation should be created successfully');
+        Assert.isNotNull(res.bookingReference, 'Booking reference must be returned');
+        Assert.isTrue(res.bookingReference.startsWith('RES-'), 'Booking reference must follow RES-XXXXXX format');
+        Assert.areEqual(RESTAURANT_NAME, res.restaurantName);
+        Assert.areEqual(2, res.partySize);
+    }
+
+    @IsTest
+    static void testCreateReservation_restaurantNotFound() {
+        Account rest = createTestRestaurant();
+        Contact diner = createTestDiner(rest.Id);
+
+        CreateReservationAction.CreateRequest req = new CreateReservationAction.CreateRequest();
+        req.restaurantName  = 'No Such Restaurant XYZ';
+        req.reservationDate = Date.today().addDays(10);
+        req.reservationTime = '18:00';
+        req.contactId       = diner.Id;
+        req.partySize       = 2;
+
+        Test.startTest();
+        List<CreateReservationAction.CreateResult> results =
+            CreateReservationAction.createReservation(new List<CreateReservationAction.CreateRequest>{ req });
+        Test.stopTest();
+
+        Assert.isFalse(results[0].isSuccess, 'Should fail when restaurant not found');
+        Assert.isTrue(results[0].message.contains('not found'), 'Message must describe the failure');
+    }
 }
