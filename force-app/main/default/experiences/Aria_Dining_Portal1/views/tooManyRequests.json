@@ -1,0 +1,25 @@
+{
+  "appPageId" : "250e68c0-e0cc-4a4b-b76a-9ad4a4118989",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  "label" : "Too Many Requests",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "richTextValue" : "<div style='display: flex; align-items: center; flex-direction: column; margin: 60px 25px 40px 25px;'><div style='margin: 0 25px; text-align: center;'><h1><b style='font-size: 2em'>Too many requests</b></h1><br/><p><span style='font-size: 1.5em;'>Please wait a moment and try again.</span></p></div></div>"
+      },
+      "componentName" : "forceCommunity:htmlBlock",
+      "id" : "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+    "regionName" : "content",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "ServiceNotAvailable",
+  "type" : "view",
+  "viewType" : "too-many-requests"
+}
