@@ -141,7 +141,6 @@ subagent reservation_support:
                     description: "The Contact record Id from @variables.ContactId"
                     is_required: True
             outputs:
-                totalCount: number
                 reservationSummaries: string
         get_reservation:
             description: "Retrieve current reservation details"
@@ -305,7 +304,8 @@ subagent restaurant_info:
                 accessibilityInfo: string
                 maxPartySize: object
                     complex_data_type_name: "lightning__integerType"
-                isActive: boolean
+                isActive: object
+                    complex_data_type_name: "lightning__booleanType"
         check_availability:
             description: "Check reservation availability at a restaurant on a given date"
             target: "apex://CheckRestaurantAvailabilityAction"
@@ -322,7 +322,8 @@ subagent restaurant_info:
                     complex_data_type_name: "lightning__integerType"
                     description: "Number of guests (optional, defaults to 2)"
             outputs:
-                isAvailable: boolean
+                isAvailable: object
+                    complex_data_type_name: "lightning__booleanType"
                 availableSlots: list[object]
                     complex_data_type_name: "lightning__textType"
                 restaurantName: string
@@ -367,7 +368,8 @@ subagent platform_faq:
             outputs:
                 articleTitle: string
                 articleContent: string
-                articleFound: boolean
+                articleFound: object
+                    complex_data_type_name: "lightning__booleanType"
 
 subagent escalation:
     label: "Escalation"
@@ -513,13 +515,14 @@ subagent booking_support:
                 restaurantName: string
                     description: "The name of the restaurant"
                     is_required: True
-                reservationDate: string
+                reservationDate: date
                     description: "Reservation date in YYYY-MM-DD format"
                     is_required: True
                 reservationTime: string
                     description: "Reservation time in HH:mm format"
                     is_required: True
-                partySize: number
+                partySize: object
+                    complex_data_type_name: "lightning__integerType"
                     description: "Number of guests"
                     is_required: True
                 specialRequests: string
@@ -529,7 +532,8 @@ subagent booking_support:
                 restaurantName: string
                 reservationDate: string
                 reservationTime: string
-                partySize: number
+                partySize: object
+                    complex_data_type_name: "lightning__integerType"
                 message: string
-                isSuccess: boolean
-                errorMessage: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
