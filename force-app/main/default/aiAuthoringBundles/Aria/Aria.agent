@@ -78,7 +78,6 @@ start_agent agent_router:
     actions:
         get_contact_profile:
             description: "Retrieve Contact profile fields for the authenticated diner"
-            source: "AiCopilot"
             target: "standardInvocableAction://GetARecordDetails"
             inputs:
                 recordId: string
@@ -135,7 +134,6 @@ subagent reservation_support:
     actions:
         list_reservations:
             description: "Query confirmed and pending reservations for the authenticated diner"
-            source: "AiCopilot"
             target: "standardInvocableAction://QueryRecords"
             inputs:
                 objectApiName: string
