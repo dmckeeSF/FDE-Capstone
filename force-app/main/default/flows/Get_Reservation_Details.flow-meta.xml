@@ -17,6 +17,12 @@
                 <elementReference>bookingReference</elementReference>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>contactId</name>
+            <value>
+                <elementReference>contactId</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>GetReservationAction</nameSegment>
         <outputParameters>
             <assignToReference>reservationStatus</assignToReference>
@@ -109,6 +115,13 @@
     <status>Active</status>
     <variables>
         <name>bookingReference</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>contactId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
