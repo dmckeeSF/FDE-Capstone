@@ -57,6 +57,7 @@ start_agent agent_router:
               - Loyalty tier change / upgrade / modify tier or status: go to off_topic
               - Diner asks to speak with a human agent or escalate: go to escalation
               - Off-topic or unrelated to dining: go to off_topic
+              - Diner says they have "a question about my booking", "I need help with my reservation", or similar vague phrasing without specifying modify, cancel, or an information request: go to ambiguous_question
               - Intent unclear: go to ambiguous_question
               If the diner's message contains two distinct requests, note both. Transition for the primary request. After that subagent completes, they must use go_to_agent_router; at that point immediately offer to handle the secondary request using any restaurant or reservation context already in the session.
         actions:
@@ -199,10 +200,10 @@ subagent cancellation_support:
                 | To cancel your reservation you need to be logged in. Please sign in to the diner portal and return to this chat — I'll be here when you're ready.
             if @variables.ContactId != "":
                 | Help the diner cancel their reservation.
-                  If the diner mentions "tonight", "today", or a time that implies within 24 hours, immediately say: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." — before asking for the booking reference.
+                  On your FIRST response in this subagent only: if the diner's opening message mentions "tonight", "today", or a time implying within 24 hours, include this warning once: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." Do NOT include this warning in any turn after the first, even if the diner mentions timing again.
                   Ask for their booking reference if not already known.
                   Call get_reservation to retrieve the reservation date and time.
-                  If the reservation is within 24 hours of now: warn the diner — "This reservation is within 24 hours. A cancellation fee of $25 per person will apply. Would you like to proceed?" If the diner confirms, proceed with cancel_reservation. If the diner declines, confirm the reservation is kept as-is and close warmly. Do NOT automatically transfer to a human agent for 24-hour cancellations. Do NOT repeat the fee warning in subsequent turns once the diner has already received it.
+                  If the reservation is within 24 hours of now: confirm the fee applies — "This reservation is within 24 hours. A cancellation fee of $25 per person will apply. Would you like to proceed?" (Only say this if you have NOT already warned them.) If the diner confirms, proceed with cancel_reservation. If the diner declines, confirm the reservation is kept as-is and close warmly. Do NOT automatically transfer to a human agent for 24-hour cancellations.
                   If NOT within 24 hours: ask the diner to confirm cancellation and collect a brief cancellation reason, then proceed.
                   Do NOT call cancel_reservation more than once for the same request.
                   If cancellation cannot be completed automatically, escalate to a human agent.
