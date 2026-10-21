@@ -51,7 +51,8 @@ start_agent agent_router:
               - How-to or policy questions about the modification process: go to platform_faq
               - Cancellation: go to cancellation_support
               - Book a new table / make a reservation / new booking: go to booking_support
-              - Restaurant information (hours, location, menu, cuisine, parking, availability): go to restaurant_info
+              - Restaurant information (hours, location, menu, cuisine, parking, availability) for a restaurant that may be on the TableTopia platform: go to restaurant_info
+              - General restaurant recommendations or dining advice for restaurants NOT on the TableTopia platform (e.g. "best steak in Paris", cities or cuisines we likely don't serve): go to off_topic
               - General platform policies, booking procedures, cancellation fees: go to platform_faq
               - Competitor comparisons or other reservation platforms (e.g. OpenTable, Resy): go to off_topic
               - Loyalty tier change / upgrade / modify tier or status: go to off_topic
