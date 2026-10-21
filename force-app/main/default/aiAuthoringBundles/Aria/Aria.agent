@@ -76,7 +76,8 @@ start_agent agent_router:
     actions:
         get_contact_profile:
             description: "Retrieve Contact profile fields for the authenticated diner"
-            target: "standard//GetARecordDetails"
+            target: "standardInvocableAction://GetARecordDetails"
+            source: "Contact"
             inputs:
                 recordId: string
                     description: "The Contact record Id"
@@ -111,7 +112,6 @@ subagent reservation_support:
         actions:
             list_reservations: @actions.list_reservations
                 description: "List all upcoming reservations for this diner when no booking reference is known"
-                with contactId = @variables.ContactId
                 available when @variables.ContactId != ""
             get_reservation: @actions.get_reservation
                 description: "Look up reservation details by booking reference"
@@ -133,7 +133,8 @@ subagent reservation_support:
     actions:
         list_reservations:
             description: "Query confirmed and pending reservations for the authenticated diner"
-            target: "standard//QueryRecords"
+            target: "standardInvocableAction://QueryRecords"
+            source: "Reservation__c"
             inputs:
                 objectApiName: string
                     description: "Salesforce object to query — always Reservation__c"
@@ -200,6 +201,7 @@ subagent cancellation_support:
                 | To cancel your reservation you need to be logged in. Please sign in to the diner portal and return to this chat — I'll be here when you're ready.
             if @variables.ContactId != "":
                 | Help the diner cancel their reservation.
+                  If the diner mentions "tonight", "today", or a time that implies within 24 hours, immediately say: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." — before asking for the booking reference.
                   Ask for their booking reference if not already known.
                   Call get_reservation to retrieve the reservation date and time.
                   If the reservation is within 24 hours of now: warn the diner — "This reservation is within 24 hours. A cancellation fee of $25 per person will apply. Would you like to proceed?" If the diner confirms, proceed with cancel_reservation. If the diner declines, confirm the reservation is kept as-is and close warmly. Do NOT automatically transfer to a human agent for 24-hour cancellations.

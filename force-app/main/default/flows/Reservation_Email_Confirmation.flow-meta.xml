@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Send_Email</name>
+        <label>Send Email</label>
+        <locationX>176</locationX>
+        <locationY>638</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <faultConnector>
+            <targetReference>Log_Fault</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>emailAddresses</name>
+            <value>
+                <elementReference>dinerEmail</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <elementReference>emailSubject</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <elementReference>emailBody</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>emailSimple</nameSegment>
+    </actionCalls>
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Log_Fault</name>
+        <label>Log Fault (no-op)</label>
+        <locationX>440</locationX>
+        <locationY>278</locationY>
+        <assignmentItems>
+            <assignToReference>faultMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <name>Set_Email_Content</name>
+        <label>Set Email Content</label>
+        <locationX>176</locationX>
+        <locationY>518</locationY>
+        <assignmentItems>
+            <assignToReference>emailSubject</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>subjectFormula</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailBody</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>bodyFormula</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Send_Email</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <name>Has_Email</name>
+        <label>Has Email</label>
+        <locationX>176</locationX>
+        <locationY>398</locationY>
+        <defaultConnector>
+            <targetReference>Set_Email_Content</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Has Email</defaultConnectorLabel>
+        <rules>
+            <name>No_Email</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>dinerEmail</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>No Email — skip</label>
+        </rules>
+    </decisions>
+    <description>Sends a confirmation email to the diner when a reservation is created, modified, or cancelled.</description>
+    <formulas>
+        <name>bodyFormula</name>
+        <dataType>String</dataType>
+        <expression>&quot;Hi &quot; &amp; {!dinerFirstName} &amp; &quot;,&quot; &amp; BR() &amp; BR() &amp;
+IF(
+  ISPICKVAL({!$Record.Status__c}, &quot;Cancelled&quot;),
+  &quot;Your reservation has been cancelled.&quot;,
+  IF(
+    ISPICKVAL({!$Record.Status__c}, &quot;Modified&quot;),
+    &quot;Your reservation has been updated. Here are your new details:&quot;,
+    &quot;Great news — your reservation is confirmed! Here are your details:&quot;
+  )
+) &amp; BR() &amp; BR() &amp;
+&quot;Booking Reference: &quot; &amp; {!$Record.Booking_Reference__c} &amp; BR() &amp;
+&quot;Restaurant: &quot; &amp; {!$Record.Restaurant__r.Name} &amp; BR() &amp;
+&quot;Date: &quot; &amp; TEXT({!$Record.Reservation_Date__c}) &amp; BR() &amp;
+&quot;Time: &quot; &amp; {!$Record.Reservation_Time__c} &amp; BR() &amp;
+&quot;Party Size: &quot; &amp; TEXT({!$Record.Party_Size__c}) &amp;
+IF(
+  NOT(ISBLANK({!$Record.Special_Requests__c})),
+  BR() &amp; &quot;Special Requests: &quot; &amp; {!$Record.Special_Requests__c},
+  &quot;&quot;
+) &amp; BR() &amp; BR() &amp;
+IF(
+  ISPICKVAL({!$Record.Status__c}, &quot;Cancelled&quot;),
+  &quot;We hope to welcome you back soon.&quot;,
+  &quot;We look forward to seeing you. If you need to make changes, you can manage your reservation through the TableTopia portal.&quot;
+) &amp; BR() &amp; BR() &amp;
+&quot;The TableTopia Team&quot;</expression>
+    </formulas>
+    <formulas>
+        <name>subjectFormula</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  ISPICKVAL({!$Record.Status__c}, &quot;Cancelled&quot;),
+  &quot;Your reservation has been cancelled — &quot; &amp; {!$Record.Booking_Reference__c},
+  IF(
+    ISPICKVAL({!$Record.Status__c}, &quot;Modified&quot;),
+    &quot;Your reservation has been updated — &quot; &amp; {!$Record.Booking_Reference__c},
+    &quot;Booking confirmed — &quot; &amp; {!$Record.Booking_Reference__c}
+  )
+)</expression>
+    </formulas>
+    <label>Reservation Email Confirmation</label>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Diner_Contact</name>
+        <label>Get Diner Contact</label>
+        <locationX>176</locationX>
+        <locationY>278</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Email</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Log_Fault</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Diner__c</elementReference>
+            </value>
+        </filters>
+        <object>Contact</object>
+        <outputAssignments>
+            <assignToReference>dinerEmail</assignToReference>
+            <field>Email</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>dinerFirstName</assignToReference>
+            <field>FirstName</field>
+        </outputAssignments>
+    </recordLookups>
+    <start>
+        <locationX>50</locationX>
+        <locationY>50</locationY>
+        <connector>
+            <targetReference>Get_Diner_Contact</targetReference>
+        </connector>
+        <filterFormula>AND(
+  NOT(ISBLANK({!$Record.Diner__c})),
+  OR(
+    ISNEW(),
+    AND(ISCHANGED({!$Record.Status__c}), OR(ISPICKVAL({!$Record.Status__c}, &quot;Cancelled&quot;), ISPICKVAL({!$Record.Status__c}, &quot;Modified&quot;)))
+  )
+)</filterFormula>
+        <object>Reservation__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>dinerEmail</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>dinerFirstName</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>emailBody</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>emailSubject</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>faultMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>
