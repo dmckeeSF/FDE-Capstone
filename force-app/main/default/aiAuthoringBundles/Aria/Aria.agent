@@ -64,7 +64,7 @@ start_agent agent_router:
         actions:
             get_contact_profile: @actions.get_contact_profile
                 description: "Load the authenticated diner's name and loyalty tier at session start"
-                with recordId = @variables.ContactId
+                with contactId = @variables.ContactId
                 available when @variables.ContactId != ""
             go_to_reservation_support: @utils.transition to @subagent.reservation_support
             go_to_cancellation_support: @utils.transition to @subagent.cancellation_support
@@ -78,16 +78,16 @@ start_agent agent_router:
     actions:
         get_contact_profile:
             description: "Retrieve Contact profile fields for the authenticated diner"
-            target: "standardInvocableAction://GetARecordDetails"
+            target: "apex://GetContactProfileAction"
             inputs:
-                recordId: string
-                    description: "The Contact record Id"
+                contactId: string
+                    description: "The Contact record Id from @variables.ContactId"
                     is_required: True
             outputs:
-                FirstName: string
-                LastName: string
-                Loyalty_Tier__c: string
-                Email: string
+                firstName: string
+                lastName: string
+                loyaltyTier: string
+                email: string
 
 
 subagent reservation_support:
@@ -100,7 +100,7 @@ subagent reservation_support:
                 | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
             if @variables.ContactId != "":
                 | Help the diner look up and modify their reservation.
-                  If no booking reference is provided, call list_reservations (objectApiName=Reservation__c, filterFormula="Diner__c = '{@variables.ContactId}' AND Status__c IN ('Confirmed','Pending')", fieldsToReturn="Booking_Reference__c,Restaurant__r.Name,Reservation_Date__c,Reservation_Time__c,Party_Size__c,Status__c").
+                  If no booking reference is provided, call list_reservations with contactId = @variables.ContactId. The action returns reservationSummaries (pipe-delimited lines: BookingRef|Restaurant|Date|Time|PartySize|Status) and totalCount.
                   If the diner indicated a restaurant or date, confirm: "I found your reservation at [restaurant] on [date] — is that the one you mean?"
                   If multiple matches exist, display each as a short card (nearest date first): "**[BookingRef]** · [Restaurant] · [Date], [Time] · [N] guests" — then ask which one they'd like to manage.
                   Once identified, call get_reservation to fetch full details before making changes.
@@ -113,6 +113,7 @@ subagent reservation_support:
         actions:
             list_reservations: @actions.list_reservations
                 description: "List all upcoming reservations for this diner when no booking reference is known"
+                with contactId = @variables.ContactId
                 available when @variables.ContactId != ""
             get_reservation: @actions.get_reservation
                 description: "Look up reservation details by booking reference"
@@ -133,20 +134,15 @@ subagent reservation_support:
 
     actions:
         list_reservations:
-            description: "Query confirmed and pending reservations for the authenticated diner"
-            target: "standardInvocableAction://QueryRecords"
+            description: "List upcoming confirmed and pending reservations for the authenticated diner"
+            target: "apex://GetReservationsForContactAction"
             inputs:
-                objectApiName: string
-                    description: "Salesforce object to query — always Reservation__c"
+                contactId: string
+                    description: "The Contact record Id from @variables.ContactId"
                     is_required: True
-                filterFormula: string
-                    description: "SOQL WHERE clause"
-                    is_required: True
-                fieldsToReturn: string
-                    description: "Comma-separated field API names to return"
             outputs:
-                records: list[object]
                 totalCount: number
+                reservationSummaries: string
         get_reservation:
             description: "Retrieve current reservation details"
             target: "flow://Get_Reservation_Details"
