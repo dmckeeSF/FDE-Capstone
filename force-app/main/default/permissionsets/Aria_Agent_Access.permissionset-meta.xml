@@ -39,6 +39,16 @@
     <description>Grants Aria agent the minimum permissions to read diner/restaurant data, modify reservations, create cases, and invoke agent actions. License-agnostic for bot user compatibility.</description>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Account.Star_Rating__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Knowledge__kav.Detail__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Reservation__c.Cancelled_At__c</field>
         <readable>true</readable>
     </fieldPermissions>
