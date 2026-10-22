@@ -287,11 +287,16 @@ subagent restaurant_info:
                 "restaurant guide [preference]"
               - If there is truly no location or preference at all: ask ONE question —
                 "Are you looking for a particular city, cuisine, or dining style?" — then search.
-              Default to returning exactly THREE options. Prioritize restaurants in the diner's mentioned
-              city; fill remaining slots from the closest city if needed. Apply any additional criteria
-              the diner gave (cuisine, price range, party size, dietary needs) to select the best three.
+              CRITICAL: Only present restaurants that appear in the Knowledge article search results.
+              NEVER suggest restaurants from general knowledge or outside the TableTopia platform.
+              If the search returns fewer than three matches, present only what was found and say
+              "We currently have [N] restaurant(s) in that area on TableTopia."
+              Default to returning up to THREE options from the search results. Prioritize the
+              diner's mentioned city; fill remaining slots from nearby-city results if available.
+              Apply any additional criteria the diner gave (cuisine, price range, dietary needs) to
+              select the best matches from the search results only.
               Present each result as a short option card:
-              "**[Restaurant Name]** — [cuisine], [price range], [one-line highlight]"
+              "**[Restaurant Name]** — [cuisine], [price range], [one-line highlight from the article]"
               then ask: "Would you like more details or availability for any of these?"
 
               Use check_availability to answer questions about table availability on a specific date.

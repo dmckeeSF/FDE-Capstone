@@ -10,9 +10,7 @@ Produce output in EXACTLY this format — no prose, no preamble, no extra sectio
 
 ESCALATION SUMMARY
 ====================
-Restaurant:        {{Input.Case.Reservation__r.Account__r.Name}}
-Reservation:       {{Input.Case.Reservation__r.Booking_Reference__c}} · {{Input.Case.Reservation__r.Reservation_Date__c}} · {{Input.Case.Reservation__r.Reservation_Time__c}} · {{Input.Case.Reservation__r.Party_Size__c}} guests
-Status:            {{Input.Case.Reservation__r.Status__c}}
+{{Input.CaseContext}}
 
 ISSUE
 -----
@@ -24,28 +22,37 @@ RESOLUTIONS OFFERED BY ARIA
 
 ESCALATION REASON
 -----------------
-{{Input.Case.Issue_Classification__c}} — [one-line plain-language description of why the diner was transferred]
+{{Input.IssueClassification}} — [one-line plain-language description of why the diner was transferred]
 
 ----
 
-Case: {{Input.Case.Subject}}
-Classification: {{Input.Case.Issue_Classification__c}}
-
 Transcript:
-{{Input.Case.Conversation_Transcript__c}}</content>
-        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+{{Input.Transcript}}</content>
         <inputs>
-            <apiName>Case</apiName>
-            <definition>SOBJECT://Case</definition>
-            <masterLabel>Case</masterLabel>
-            <referenceName>Input.Case</referenceName>
+            <apiName>CaseContext</apiName>
+            <definition>text</definition>
+            <masterLabel>Case Context</masterLabel>
+            <referenceName>Input.CaseContext</referenceName>
             <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>IssueClassification</apiName>
+            <definition>text</definition>
+            <masterLabel>Issue Classification</masterLabel>
+            <referenceName>Input.IssueClassification</referenceName>
+            <required>false</required>
+        </inputs>
+        <inputs>
+            <apiName>Transcript</apiName>
+            <definition>text</definition>
+            <masterLabel>Transcript</masterLabel>
+            <referenceName>Input.Transcript</referenceName>
+            <required>false</required>
         </inputs>
         <isCitationEnabled>false</isCitationEnabled>
         <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
         <status>Draft</status>
         <templateFormat>Jinja</templateFormat>
-        <versionIdentifier>Ma762C/aSgjBdETDGJtPXXxa5K8QRA0eqoj9yuOwzSw=_1</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>
