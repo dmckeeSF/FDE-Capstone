@@ -283,7 +283,11 @@ subagent restaurant_info:
               "restaurants near me", "something in Bellevue"): ask ONE clarifying question to understand
               their preference — for example: "Are you looking for a particular cuisine, price range, or
               dining style?" Then call search_knowledge with a query like "restaurant guide [preference]"
-              to surface matching restaurant guide articles. Present each result as a short option card:
+              to surface matching restaurant guide articles. Default to returning exactly THREE options.
+              Prioritize restaurants in the same city the diner mentioned; if fewer than three match,
+              fill remaining slots from the closest city available. Apply any other criteria the diner
+              provided (cuisine, price range, party size, dietary needs) to select the best three.
+              Present each result as a short option card:
               "**[Restaurant Name]** — [cuisine], [price range], [one-line highlight]"
               then ask: "Would you like more details or availability for any of these?"
 
