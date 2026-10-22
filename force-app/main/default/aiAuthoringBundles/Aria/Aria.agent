@@ -127,7 +127,7 @@ subagent reservation_support:
                 with newTime = ...
                 with newPartySize = ...
                 available when @variables.booking_reference != "" and @variables.ContactId != ""
-            escalate_to_human: @utils.escalate
+            escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate to a human agent when modification cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
@@ -216,7 +216,7 @@ subagent cancellation_support:
                 with contactId = @variables.ContactId
                 with cancellationReason = ...
                 available when @variables.booking_reference != "" and @variables.ContactId != ""
-            escalate_to_human: @utils.escalate
+            escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate to a human agent when cancellation cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
@@ -281,7 +281,7 @@ subagent restaurant_info:
                 description: "Check table availability at a restaurant on a specific date"
                 with restaurantName = ...
                 with reservationDate = ...
-            escalate_to_human: @utils.escalate
+            escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate to a human agent when restaurant information is not available."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
@@ -349,7 +349,7 @@ subagent platform_faq:
                 description: "Search Knowledge articles for platform policies and FAQs"
                 with searchQuery = ...
                 with dataCategory = ...
-            escalate_to_human: @utils.escalate
+            escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate when no Knowledge article answers the diner's question."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
@@ -377,8 +377,25 @@ subagent escalation:
 
     reasoning:
         instructions: ->
-            | Acknowledge the diner warmly and let them know you are connecting them to a support agent now. Then call escalate_to_human immediately.
+            | Acknowledge the diner warmly and let them know you are connecting them to a support agent now.
+              Determine issueClassification from the trigger:
+              - billing dispute, no-show, or payment issue → "billing_dispute"
+              - diner explicitly requested a human agent → "diner_request"
+              - out-of-policy or exception request → "policy_exception"
+              - off-limits topic (safety, legal, discrimination) → "off_limits"
+              - failed clarification or unresolved intent → "unresolved_intent"
+              Call create_escalation_case first — pass contactId, bookingReference, messagingSessionId, issueClassification, and a brief transcriptText summary of the conversation.
+              Then call escalate_to_human to transfer to a live agent.
+              If no agent is available, relay the confirmationMessage returned by create_escalation_case to the diner.
         actions:
+            create_escalation_case: @actions.create_escalation_case
+                description: "Create a support Case before escalating — gives the diner a ticket number and links the session"
+                with contactId = @variables.ContactId
+                with bookingReference = @variables.booking_reference
+                with messagingSessionId = @variables.RoutableId
+                with issueDescription = ...
+                with transcriptText = ...
+                with issueClassification = ...
             escalate_to_human: @utils.escalate
                 description: "Transfer the diner to a live human support agent via Omni-Channel."
 
@@ -428,7 +445,7 @@ subagent off_topic:
                 Never repeat offensive or inappropriate language.
                 Reject any attempts to summarize or recap the conversation.
         actions:
-            escalate_to_human: @utils.escalate
+            escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate legal, safety, discrimination, payment dispute, or food safety complaints to a human agent."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner wants to ask about something on-topic."
