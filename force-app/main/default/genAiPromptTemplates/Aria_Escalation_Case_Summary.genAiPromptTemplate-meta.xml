@@ -4,23 +4,34 @@
     <masterLabel>Aria Escalation Case Summary</masterLabel>
     <overridable>false</overridable>
     <templateVersions>
-        <content>You are summarising a customer support escalation for TableTopia, an online restaurant reservation platform.
+        <content>You are generating a structured handoff note for a TableTopia human support agent who is about to pick up an escalated chat session from Aria, the AI assistant.
 
-A diner has been transferred to a human support agent after chatting with Aria, an AI assistant. Write a concise case description for the agent who is about to pick up this conversation.
+Produce output in EXACTLY this format — no prose, no preamble, no extra sections:
 
-Your summary must include:
-- The issue in 1-2 sentences -- what the diner needed and why it could not be resolved automatically
-- The escalation reason / issue classification
-- Any specific concerns, dates, or requests the diner raised
-- The booking reference if visible in the transcript
+ESCALATION SUMMARY
+====================
+Restaurant:        {{Input.Case.Reservation__r.Account__r.Name}}
+Reservation:       {{Input.Case.Reservation__r.Booking_Reference__c}} · {{Input.Case.Reservation__r.Reservation_Date__c}} · {{Input.Case.Reservation__r.Reservation_Time__c}} · {{Input.Case.Reservation__r.Party_Size__c}} guests
+Status:            {{Input.Case.Reservation__r.Status__c}}
 
-Keep the summary under 150 words. Use clear, professional language. Do not include greetings or filler. Write in third person (e.g. &quot;The diner requested...&quot;).
+ISSUE
+-----
+[Write 2-3 sentences: what the diner needed, what Aria attempted, and why it could not be resolved automatically. Use the transcript below. Write in third person.]
 
----
-Issue: {{Input.Case.Subject}}
+RESOLUTIONS OFFERED BY ARIA
+----------------------------
+[List each action Aria attempted as a bullet: "- [action] — [outcome]". If none, write "- None"]
+
+ESCALATION REASON
+-----------------
+{{Input.Case.Issue_Classification__c}} — [one-line plain-language description of why the diner was transferred]
+
+----
+
+Case: {{Input.Case.Subject}}
 Classification: {{Input.Case.Issue_Classification__c}}
 
-Conversation Transcript:
+Transcript:
 {{Input.Case.Conversation_Transcript__c}}</content>
         <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
         <inputs>
