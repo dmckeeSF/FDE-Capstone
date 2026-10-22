@@ -279,14 +279,17 @@ subagent restaurant_info:
               (Name, Cuisine_Type__c, Operating_Hours__c, Price_Range__c, Dress_Code__c,
               Accessibility_Info__c, Max_Party_Size__c) directly in your response.
 
-              If the diner is browsing or asking for suggestions (e.g. "top restaurants", "what do you have",
-              "restaurants near me", "something in Bellevue"): ask ONE clarifying question to understand
-              their preference — for example: "Are you looking for a particular cuisine, price range, or
-              dining style?" Then call search_knowledge with a query like "restaurant guide [preference]"
-              to surface matching restaurant guide articles. Default to returning exactly THREE options.
-              Prioritize restaurants in the same city the diner mentioned; if fewer than three match,
-              fill remaining slots from the closest city available. Apply any other criteria the diner
-              provided (cuisine, price range, party size, dietary needs) to select the best three.
+              If the diner is browsing or asking for suggestions (e.g. "top restaurants", "what do you
+              have", "restaurants near me", "something in Bellevue", "restaurants in [city]"):
+              DO NOT ask for a specific restaurant name. Instead, act immediately:
+              - If the diner mentioned a city or area: call search_knowledge with "restaurant guide [city]"
+              - If the diner mentioned a cuisine or other preference: call search_knowledge with
+                "restaurant guide [preference]"
+              - If there is truly no location or preference at all: ask ONE question —
+                "Are you looking for a particular city, cuisine, or dining style?" — then search.
+              Default to returning exactly THREE options. Prioritize restaurants in the diner's mentioned
+              city; fill remaining slots from the closest city if needed. Apply any additional criteria
+              the diner gave (cuisine, price range, party size, dietary needs) to select the best three.
               Present each result as a short option card:
               "**[Restaurant Name]** — [cuisine], [price range], [one-line highlight]"
               then ask: "Would you like more details or availability for any of these?"
