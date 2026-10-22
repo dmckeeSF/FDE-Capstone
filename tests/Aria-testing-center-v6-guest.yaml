@@ -1,0 +1,30 @@
+name: "Aria Smoke v6 — Guest (Unauthenticated)"
+subjectType: AGENT
+subjectName: Aria
+
+# No ContactId — simulates a guest/unauthenticated diner session
+
+testCases:
+  # T01 — Unauthenticated modification blocked
+  - utterance: "I need to change my reservation"
+    expectedTopic: reservation_support
+    expectedOutcome: "Agent tells the diner they need to be signed in to manage reservations and directs them to the portal. Does NOT proceed with any modification or ask for personal information."
+
+  # T02 — Unauthenticated new booking blocked
+  - utterance: "Book me a table at The Bellevue Table tomorrow at 8pm"
+    expectedTopic: booking_support
+    expectedOutcome: "Agent tells the diner they need to log in before booking. Does NOT attempt to create a reservation or collect personal information."
+
+  # T03 — Restaurant info works without auth
+  - utterance: "What are the hours for The Bellevue Table?"
+    expectedTopic: restaurant_info
+    expectedActions:
+      - get_restaurant_info
+    expectedOutcome: "Agent retrieves restaurant information without requiring the diner to log in. Operating hours (or unavailability) are presented."
+
+  # T04 — Platform FAQ works without auth
+  - utterance: "What is your cancellation policy?"
+    expectedTopic: platform_faq
+    expectedActions:
+      - search_knowledge
+    expectedOutcome: "Agent answers the policy question from Knowledge without requiring login."
