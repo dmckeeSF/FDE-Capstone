@@ -31,7 +31,10 @@ variables:
     reservation_action_requested: mutable string = ""
         description: "The action the diner wants to perform: modify, cancel, or inquiry"
     restaurant_name_context: mutable string = ""
-        description: "Restaurant name captured during this session for cross-subagent context"
+    case_id: mutable string = ""
+        description: "Stores the Case ID created during escalation for use in the prompt template"
+    loyalty_tier: mutable string = ""
+        description: "The authenticated diner's loyalty tier (e.g. Platinum, Gold, Silver) — populated at session start by get_contact_profile"
 
 language:
     default_locale: "en_US"
@@ -65,6 +68,7 @@ start_agent agent_router:
             get_contact_profile: @actions.get_contact_profile
                 description: "Load the authenticated diner's name and loyalty tier at session start"
                 with contactId = @variables.ContactId
+                set @variables.loyalty_tier = @outputs.loyaltyTier
                 available when @variables.ContactId != ""
             go_to_reservation_support: @utils.transition to @subagent.reservation_support
             go_to_cancellation_support: @utils.transition to @subagent.cancellation_support
@@ -198,7 +202,10 @@ subagent cancellation_support:
                 | Help the diner cancel their reservation.
                   On your FIRST response in this subagent only: if the diner's opening message mentions "tonight", "today", or a time implying within 24 hours, include this warning once: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." Do NOT include this warning in any turn after the first, even if the diner mentions timing again.
                   Ask for their booking reference if not already known.
-                  Call get_reservation to retrieve the reservation date and time.
+                  Call get_reservation to retrieve the reservation details.
+                  PLATINUM TIER CHECK — after get_reservation returns: if partySize > 4, check @variables.loyalty_tier. If loyalty_tier is not "Platinum", tell the diner: "I'm sorry, cancellations for reservations of more than 4 guests require a Platinum loyalty tier account. I'll connect you with a support agent who can assist." Then use escalate_to_human. Do NOT proceed with cancel_reservation if partySize > 4 and loyalty_tier is not "Platinum".
+                  If partySize > 4 and loyalty_tier is "Platinum": proceed normally.
+                  If partySize is 4 or fewer: proceed normally for all diners.
                   If the reservation is within 24 hours of now: confirm the fee applies — "This reservation is within 24 hours. A cancellation fee of $25 per person will apply. Would you like to proceed?" (Only say this if you have NOT already warned them.) If the diner confirms, proceed with cancel_reservation. If the diner declines, confirm the reservation is kept as-is and close warmly. Do NOT automatically transfer to a human agent for 24-hour cancellations.
                   If NOT within 24 hours: ask the diner to confirm cancellation and collect a brief cancellation reason, then proceed.
                   Do NOT call cancel_reservation more than once for the same request.
@@ -385,7 +392,7 @@ subagent escalation:
               - off-limits topic (safety, legal, discrimination) → "off_limits"
               - failed clarification or unresolved intent → "unresolved_intent"
               Call create_escalation_case first — pass contactId, bookingReference, messagingSessionId, issueClassification, and a brief transcriptText summary of the conversation.
-              Then call escalate_to_human to transfer to a live agent.
+              After create_escalation_case succeeds, call escalate_to_human to transfer to a live agent.
               If no agent is available, relay the confirmationMessage returned by create_escalation_case to the diner.
         actions:
             create_escalation_case: @actions.create_escalation_case
@@ -396,6 +403,7 @@ subagent escalation:
                 with issueDescription = ...
                 with transcriptText = ...
                 with issueClassification = ...
+                set @variables.case_id = @outputs.caseId
             escalate_to_human: @utils.escalate
                 description: "Transfer the diner to a live human support agent via Omni-Channel."
 
@@ -422,7 +430,6 @@ subagent escalation:
                 caseId: string
                 caseNumber: string
                 confirmationMessage: string
-
 subagent off_topic:
     label: "Off Topic"
     description: "Handles requests unrelated to dining, reservations, or restaurant services. Applies guardrails for sensitive categories and redirects appropriately."

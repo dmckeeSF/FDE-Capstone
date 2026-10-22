@@ -26,7 +26,7 @@
         <name>Set_Outputs</name>
         <label>Set Output Variables</label>
         <locationX>176</locationX>
-        <locationY>1118</locationY>
+        <locationY>1358</locationY>
         <assignmentItems>
             <assignToReference>caseId</assignToReference>
             <operator>Assign</operator>
@@ -196,6 +196,33 @@
         </inputAssignments>
         <object>MessagingSession</object>
     </recordUpdates>
+    <recordUpdates>
+        <name>Update_Case_Description</name>
+        <label>Update Case with AI Summary</label>
+        <locationX>176</locationX>
+        <locationY>1238</locationY>
+        <connector>
+            <targetReference>Set_Outputs</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Set_Outputs</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Description</field>
+            <value>
+                <elementReference>caseSummary</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Case</object>
+    </recordUpdates>
     <recordLookups>
         <name>Get_Case_Number</name>
         <label>Get Case Number</label>
@@ -203,7 +230,7 @@
         <locationY>998</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Set_Outputs</targetReference>
+            <targetReference>Generate_Case_Summary</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Fault_Handler</targetReference>
@@ -326,4 +353,35 @@
         <isInput>true</isInput>
         <isOutput>false</isOutput>
     </variables>
+    <variables>
+        <name>caseSummary</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <actionCalls>
+        <name>Generate_Case_Summary</name>
+        <label>Generate AI Case Summary</label>
+        <locationX>176</locationX>
+        <locationY>1118</locationY>
+        <actionName>GenerateCaseSummaryAction</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Update_Case_Description</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Set_Outputs</targetReference>
+        </faultConnector>
+        <inputParameters>
+            <name>caseId</name>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </inputParameters>
+        <outputParameters>
+            <assignToReference>caseSummary</assignToReference>
+            <name>summary</name>
+        </outputParameters>
+    </actionCalls>
 </Flow>

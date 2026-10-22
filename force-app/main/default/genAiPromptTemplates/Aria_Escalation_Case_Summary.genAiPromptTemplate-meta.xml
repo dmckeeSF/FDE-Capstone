@@ -1,56 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersion>1</activeVersion>
-    <description>Generates a concise escalation case description for the human support agent when Aria transfers a diner. Summarises the restaurant, booking reference, issue type, and key conversation details.</description>
+    <developerName>Aria_Escalation_Case_Summary</developerName>
     <masterLabel>Aria Escalation Case Summary</masterLabel>
+    <overridable>false</overridable>
     <templateVersions>
         <content>You are summarising a customer support escalation for TableTopia, an online restaurant reservation platform.
 
 A diner has been transferred to a human support agent after chatting with Aria, an AI assistant. Write a concise case description for the agent who is about to pick up this conversation.
 
 Your summary must include:
-- The restaurant the diner was asking about (if mentioned)
-- The booking reference (if available)
-- The issue in 1–2 sentences — what the diner needed and why it could not be resolved automatically
+- The issue in 1-2 sentences -- what the diner needed and why it could not be resolved automatically
+- The escalation reason / issue classification
 - Any specific concerns, dates, or requests the diner raised
-- The escalation reason
+- The booking reference if visible in the transcript
 
-Keep the summary under 150 words. Use clear, professional language. Do not include greetings or filler. Write in third person (e.g. "The diner requested...").
+Keep the summary under 150 words. Use clear, professional language. Do not include greetings or filler. Write in third person (e.g. &quot;The diner requested...&quot;).
 
 ---
-Restaurant: {!Input:restaurantName}
-Booking Reference: {!Input:bookingReference}
-Issue Classification: {!Input:issueClassification}
+Issue: {{Input.Case.Subject}}
+Classification: {{Input.Case.Issue_Classification__c}}
 
 Conversation Transcript:
-{!Input:transcriptText}</content>
+{{Input.Case.Conversation_Transcript__c}}</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
         <inputs>
-            <apiName>transcriptText</apiName>
-            <definition>The conversation transcript between Aria and the diner</definition>
-            <referenceName>Input:transcriptText</referenceName>
-            <type>Text</type>
+            <apiName>Case</apiName>
+            <definition>SOBJECT://Case</definition>
+            <masterLabel>Case</masterLabel>
+            <referenceName>Input.Case</referenceName>
+            <required>true</required>
         </inputs>
-        <inputs>
-            <apiName>restaurantName</apiName>
-            <definition>The name of the restaurant the diner was inquiring about — empty string if not mentioned</definition>
-            <referenceName>Input:restaurantName</referenceName>
-            <type>Text</type>
-        </inputs>
-        <inputs>
-            <apiName>bookingReference</apiName>
-            <definition>The diner's booking reference number — empty string if not available</definition>
-            <referenceName>Input:bookingReference</referenceName>
-            <type>Text</type>
-        </inputs>
-        <inputs>
-            <apiName>issueClassification</apiName>
-            <definition>The category of the issue: billing_dispute, diner_request, policy_exception, off_limits, or unresolved_intent</definition>
-            <referenceName>Input:issueClassification</referenceName>
-            <type>Text</type>
-        </inputs>
-        <status>Active</status>
-        <versionNumber>1</versionNumber>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
+        <status>Draft</status>
+        <templateFormat>Jinja</templateFormat>
+        <versionIdentifier>Ma762C/aSgjBdETDGJtPXXxa5K8QRA0eqoj9yuOwzSw=_1</versionIdentifier>
     </templateVersions>
-    <type>Flex</type>
+    <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>
 </GenAiPromptTemplate>
