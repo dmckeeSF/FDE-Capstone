@@ -52,6 +52,56 @@
         </values>
     </picklistValues>
     <picklistValues>
+        <picklist>Cuisine_Type__c</picklist>
+        <values>
+            <fullName>American</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>French</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Indian</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Italian</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Japanese</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mediterranean</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mexican</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Dress_Code__c</picklist>
+        <values>
+            <fullName>Casual</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Formal</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Smart Casual</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
         <picklist>Industry</picklist>
         <values>
             <fullName>Agriculture</fullName>
@@ -198,6 +248,25 @@
         </values>
         <values>
             <fullName>Subsidiary</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Price_Range__c</picklist>
+        <values>
+            <fullName>%24</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>%24%24</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>%24%24%24</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>%24%24%24%24</fullName>
             <default>false</default>
         </values>
     </picklistValues>

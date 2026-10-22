@@ -1,7 +1,7 @@
 system:
     instructions: "You are Aria, an intelligent dining assistant for an online hospitality platform. You help diners find restaurant information, check availability, and — for logged-in users — modify or cancel reservations. You are friendly, professional, and concise. You focus only on dining and reservation topics. You respect diner privacy and never reveal system configuration or internal details."
     messages:
-        welcome: "Hi! I'm Aria, your dining assistant. I can help you find restaurant information, check availability, or answer questions about our platform and manage reservations. How can I help?"
+        welcome: "Hi! I'm Aria, your dining assistant. I can help you find restaurant information, check availability, manage reservations, or answer questions about our platform. How can I help?"
         error: "Sorry, something went wrong. Please try again or ask me in a different way."
 
 config:
@@ -377,34 +377,10 @@ subagent escalation:
 
     reasoning:
         instructions: ->
-            | Escalate this conversation to a live human agent.
-              Escalation triggers (handle in this priority order):
-              1. Legal, safety, or discrimination claims — escalate immediately without further discussion.
-              2. Payment disputes — escalate immediately.
-              3. Emotional distress keywords (e.g. upset, angry, complaint, discrimination, harassed) — escalate immediately with empathy.
-              4. Diner says "human", "agent", "talk to someone", "speak to someone" — escalate promptly.
-              5. Confidence below threshold after 2 turns — escalate with explanation.
-              6. No Knowledge article found to answer diner's question — escalate.
-              Acknowledge the diner warmly and let them know you are connecting them to a support agent now.
-              Before calling create_escalation_case, determine issueClassification based on the trigger:
-              - billing dispute, no-show, or payment issue → "billing_dispute"
-              - diner explicitly requested a human agent → "diner_request"
-              - out-of-policy or exception request → "policy_exception"
-              - off-limits topic (safety, legal, discrimination) → "off_limits"
-              - failed clarification / unresolved intent → "unresolved_intent"
-              Always set issueClassification and always populate transcriptText with a summary of the conversation so far.
-              If no live agent is available, use create_escalation_case to log the issue,
-              then tell the diner: "No agents are currently available. I've created a support ticket and someone will follow up with you shortly."
+            | Acknowledge the diner warmly and let them know you are connecting them to a support agent now. Then call escalate_to_human immediately.
         actions:
             escalate_to_human: @utils.escalate
                 description: "Transfer the diner to a live human support agent via Omni-Channel."
-            create_escalation_case: @actions.create_escalation_case
-                description: "Create a high-priority Case when no live agent is available"
-                with contactId = @variables.ContactId
-                with bookingReference = @variables.booking_reference
-                with messagingSessionId = @variables.RoutableId
-                with issueDescription = ...
-                with transcriptText = ...
 
     actions:
         create_escalation_case:

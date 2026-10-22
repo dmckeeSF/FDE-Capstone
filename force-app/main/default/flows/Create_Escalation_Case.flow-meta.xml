@@ -26,7 +26,7 @@
         <name>Set_Outputs</name>
         <label>Set Output Variables</label>
         <locationX>176</locationX>
-        <locationY>758</locationY>
+        <locationY>1118</locationY>
         <assignmentItems>
             <assignToReference>caseId</assignToReference>
             <operator>Assign</operator>
@@ -200,7 +200,7 @@
         <name>Get_Case_Number</name>
         <label>Get Case Number</label>
         <locationX>176</locationX>
-        <locationY>638</locationY>
+        <locationY>998</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Set_Outputs</targetReference>
