@@ -54,7 +54,7 @@ start_agent agent_router:
               - How-to or policy questions about the modification process: go to platform_faq
               - Cancellation: go to cancellation_support
               - Book a new table / make a reservation / new booking: go to booking_support
-              - Restaurant information (hours, location, menu, cuisine, parking, availability) for a restaurant that may be on the TableTopia platform: go to restaurant_info
+              - Restaurant information (hours, location, menu, cuisine, parking, availability), OR browsing/discovery requests ("top restaurants", "what restaurants do you have", "suggest something in Bellevue", "what cuisines are available") for restaurants on the TableTopia platform: go to restaurant_info
               - General restaurant recommendations or dining advice for restaurants NOT on the TableTopia platform (e.g. "best steak in Paris", cities or cuisines we likely don't serve): go to off_topic
               - General platform policies, booking procedures, cancellation fees: go to platform_faq
               - Competitor comparisons or other reservation platforms (e.g. OpenTable, Resy): go to off_topic
@@ -268,22 +268,37 @@ subagent cancellation_support:
 
 subagent restaurant_info:
     label: "Restaurant Information"
-    description: "Answers questions about restaurants including location, hours, cuisine type, menu, parking, contact information, and general policies. No authentication required."
+    description: "Answers questions about restaurants including location, hours, cuisine type, menu, parking, contact information, and general policies. Also handles discovery and recommendation requests. No authentication required."
 
     reasoning:
         instructions: ->
-            | Help the diner find information about a restaurant. No login required for this topic.
-              Use the get_restaurant_info action to look up details. Include Name, Cuisine_Type__c,
-              Operating_Hours__c, Cancellation_Policy__c, Price_Range__c, Dress_Code__c,
-              Accessibility_Info__c, and Max_Party_Size__c in your response where relevant.
+            | Help the diner find restaurant information or discover restaurants on the TableTopia platform.
+              No login required for this topic.
+
+              If the diner names a specific restaurant: call get_restaurant_info and present the details
+              (Name, Cuisine_Type__c, Operating_Hours__c, Price_Range__c, Dress_Code__c,
+              Accessibility_Info__c, Max_Party_Size__c) directly in your response.
+
+              If the diner is browsing or asking for suggestions (e.g. "top restaurants", "what do you have",
+              "restaurants near me", "something in Bellevue"): ask ONE clarifying question to understand
+              their preference — for example: "Are you looking for a particular cuisine, price range, or
+              dining style?" Then call search_knowledge with a query like "restaurant guide [preference]"
+              to surface matching restaurant guide articles. Present each result as a short option card:
+              "**[Restaurant Name]** — [cuisine], [price range], [one-line highlight]"
+              then ask: "Would you like more details or availability for any of these?"
+
               Use check_availability to answer questions about table availability on a specific date.
-              Write the data directly in your text response — do NOT use show_command.
-              If information is not available, escalate to a human agent.
-              After answering the diner's question, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router to continue. If no, close the conversation warmly.
+              Write all data directly in your text response — do NOT use show_command.
+              If no information is found, escalate to a human agent.
+              After answering, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
         actions:
             get_restaurant_info: @actions.get_restaurant_info
                 description: "Look up restaurant details by name"
                 with restaurantNames = ...
+            search_knowledge: @actions.search_knowledge
+                description: "Search Knowledge articles to discover restaurants and get guide content"
+                with searchQuery = ...
+                with dataCategory = ...
             check_availability: @actions.check_availability
                 description: "Check table availability at a restaurant on a specific date"
                 with restaurantName = ...
@@ -294,6 +309,20 @@ subagent restaurant_info:
                 description: "Return to the main router when the diner has another request."
 
     actions:
+        search_knowledge:
+            description: "Search Salesforce Knowledge for restaurant guide articles"
+            target: "apex://SearchKnowledgeAction"
+            inputs:
+                searchQuery: string
+                    description: "The search query, e.g. 'restaurant guide Italian' or 'restaurant guide Bellevue'"
+                    is_required: True
+                dataCategory: string
+                    description: "Knowledge data category scope"
+            outputs:
+                articleTitle: string
+                articleContent: string
+                articleFound: object
+                    complex_data_type_name: "lightning__booleanType"
         get_restaurant_info:
             description: "Query restaurant details from Account records (RecordType: Restaurant)"
             target: "apex://GetRestaurantInfoAction"
