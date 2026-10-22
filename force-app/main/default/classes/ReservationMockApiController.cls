@@ -233,19 +233,18 @@ global without sharing class ReservationMockApiController {
         Map<Integer, Integer> bookedBySlot = new Map<Integer, Integer>();
         for (Integer m : allSlotMins) bookedBySlot.put(m, 0);
 
-        for (AggregateResult ar : [
-            SELECT Reservation_Time__c slotTime, SUM(Party_Size__c) covers
+        for (Reservation__c r : [
+            SELECT Reservation_Time__c, Party_Size__c
             FROM Reservation__c
             WHERE Restaurant__c = :rest.Id
               AND Reservation_Date__c = :reserveDate
               AND Status__c != 'Cancelled'
-            GROUP BY Reservation_Time__c
         ]) {
-            Time t = (Time) ar.get('slotTime');
-            if (t == null) continue;
-            Integer slotMins = t.hour() * 60 + t.minute();
+            if (r.Reservation_Time__c == null) continue;
+            Integer slotMins = r.Reservation_Time__c.hour() * 60 + r.Reservation_Time__c.minute();
             if (bookedBySlot.containsKey(slotMins)) {
-                bookedBySlot.put(slotMins, Integer.valueOf(ar.get('covers')));
+                Integer existing = bookedBySlot.get(slotMins);
+                bookedBySlot.put(slotMins, existing + (r.Party_Size__c != null ? r.Party_Size__c.intValue() : 0));
             }
         }
 
@@ -259,11 +258,10 @@ global without sharing class ReservationMockApiController {
             }
         }
 
-        // Sort by proximity to requested time, return up to 3
+        // Sort by proximity to requested time, return all available slots
         Integer requestedMins = String.isBlank(timeStr) ? toMinutes(secondStart) : toMinutes(timeStr);
         availableMins.sort();
-        // Find the 3 closest by absolute difference
-        List<Integer> closest = pickClosest(availableMins, requestedMins, 3);
+        List<Integer> closest = pickClosest(availableMins, requestedMins, availableMins.size());
 
         // Build response
         List<String> slots = new List<String>();

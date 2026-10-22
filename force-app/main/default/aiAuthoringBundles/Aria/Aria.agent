@@ -402,9 +402,9 @@ subagent escalation:
                 description: "Create a high-priority Case when no live agent is available"
                 with contactId = @variables.ContactId
                 with bookingReference = @variables.booking_reference
+                with messagingSessionId = @variables.RoutableId
                 with issueDescription = ...
                 with transcriptText = ...
-                available when @variables.ContactId != ""
 
     actions:
         create_escalation_case:
@@ -412,10 +412,13 @@ subagent escalation:
             target: "flow://Create_Escalation_Case"
             inputs:
                 contactId: string
-                    description: "The Contact ID of the diner"
-                    is_required: True
+                    description: "The Contact ID of the diner — may be empty for guest sessions"
+                    is_required: False
                 bookingReference: string
                     description: "The booking reference if known"
+                messagingSessionId: string
+                    description: "The MessagingSession ID to link the Case to"
+                    is_required: True
                 issueDescription: string
                     description: "Brief description of the issue"
                 transcriptText: string

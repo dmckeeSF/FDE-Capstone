@@ -26,7 +26,7 @@
         <name>Set_Outputs</name>
         <label>Set Output Variables</label>
         <locationX>176</locationX>
-        <locationY>638</locationY>
+        <locationY>758</locationY>
         <assignmentItems>
             <assignToReference>caseId</assignToReference>
             <operator>Assign</operator>
@@ -107,7 +107,7 @@
         <locationX>176</locationX>
         <locationY>398</locationY>
         <connector>
-            <targetReference>Get_Case_Number</targetReference>
+            <targetReference>Link_Session_To_Case</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Fault_Handler</targetReference>
@@ -169,11 +169,38 @@
         <object>Case</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>
+    <recordUpdates>
+        <name>Link_Session_To_Case</name>
+        <label>Link Session to Case</label>
+        <locationX>176</locationX>
+        <locationY>518</locationY>
+        <connector>
+            <targetReference>Get_Case_Number</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Get_Case_Number</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>messagingSessionId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>CaseId</field>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </inputAssignments>
+        <object>MessagingSession</object>
+    </recordUpdates>
     <recordLookups>
         <name>Get_Case_Number</name>
         <label>Get Case Number</label>
         <locationX>176</locationX>
-        <locationY>518</locationY>
+        <locationY>638</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Set_Outputs</targetReference>
@@ -229,6 +256,13 @@
         </connector>
     </start>
     <status>Active</status>
+    <variables>
+        <name>messagingSessionId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <name>bookingReference</name>
         <dataType>String</dataType>
