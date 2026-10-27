@@ -109,13 +109,16 @@ subagent reservation_support:
         instructions: ->
             if @variables.ContactId == "":
                 | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
-            if @variables.ContactId != "":
-                | Help the diner look up and modify their reservation.
-                  If no booking reference is provided, call list_reservations with contactId = @variables.ContactId. The action returns reservationSummaries (pipe-delimited lines: BookingRef|Restaurant|Date|Time|PartySize|Status) and totalCount.
+            if @variables.ContactId != "" and @variables.booking_reference == "":
+                | No booking reference is on file for this session. Call list_reservations to retrieve the diner's upcoming reservations.
+                  The action returns reservationSummaries (pipe-delimited lines: BookingRef|Restaurant|Date|Time|PartySize|Status) and totalCount.
                   If the diner indicated a restaurant or date, confirm: "I found your reservation at [restaurant] on [date] — is that the one you mean?"
                   If multiple matches exist, display each as a short card (nearest date first): "**[BookingRef]** · [Restaurant] · [Date], [Time] · [N] guests" — then ask which one they'd like to manage.
                   Once identified, call get_reservation to fetch full details before making changes.
-                  If the diner provides only part of a modification (e.g. party size but not time), ask: "Anything else you'd like to change — date, time, or party size?" Wait for the full picture. Once done, confirm ALL changes together: "I'll update your reservation to [date], [time], [party size]. Shall I go ahead?" Then call modify_reservation ONCE with all fields.
+            if @variables.ContactId != "" and @variables.booking_reference != "":
+                | Booking reference {!@variables.booking_reference} is known. Call get_reservation to fetch current details before making any changes.
+            if @variables.ContactId != "":
+                | If the diner provides only part of a modification (e.g. party size but not time), ask: "Anything else you'd like to change — date, time, or party size?" Wait for the full picture. Once done, confirm ALL changes together: "I'll update your reservation to [date], [time], [party size]. Shall I go ahead?" Then call modify_reservation ONCE with all fields.
                   Never call modify_reservation mid-conversation before the diner has finished specifying changes.
                   After every successful write: (1) state the booking reference, (2) summarise restaurant/date/time/party size, (3) "A confirmation email has been sent to your email address on file."
                   Do NOT call modify_reservation more than once for the same request.
@@ -409,10 +412,12 @@ subagent restaurant_info:
                     description: "The date to check availability"
                     is_required: True
                 requestedTime: string
-                    description: "Requested time in HH:mm format (optional)"
+                    description: "Requested time in HH:mm format — optional, LLM slot-filled when diner specifies a time"
+                    is_required: False
                 partySize: object
                     complex_data_type_name: "lightning__integerType"
-                    description: "Number of guests (optional, defaults to 2)"
+                    description: "Number of guests — optional, defaults to 2 if not provided"
+                    is_required: False
             outputs:
                 isAvailable: object
                     complex_data_type_name: "lightning__booleanType"
