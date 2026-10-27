@@ -31,6 +31,7 @@ variables:
     reservation_action_requested: mutable string = ""
         description: "The action the diner wants to perform: modify, cancel, or inquiry"
     restaurant_name_context: mutable string = ""
+        description: ""
     case_id: mutable string = ""
         description: "Stores the Case ID created during escalation for use in the prompt template"
     loyalty_tier: mutable string = ""
@@ -47,9 +48,18 @@ start_agent agent_router:
 
     reasoning:
         instructions: ->
-            | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
-              First check @variables.ContactId. If not empty, call get_contact_profile to load the diner's first name and loyalty tier — greet them by first name and reference their tier throughout. If ContactId is empty, greet generically. If the diner requests any private action (modify, cancel, booking history, new booking), tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
-              Route to the most relevant subagent:
+            if @variables.ContactId != "":
+                run @actions.get_contact_profile
+                    with contactId = @variables.ContactId
+                    set @variables.loyalty_tier = @outputs.loyaltyTier
+            if @variables.ContactId != "":
+                | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
+                  The diner is authenticated. Greet them by first name and reference their loyalty tier throughout.
+                  If the diner requests any private action (modify, cancel, booking history, new booking) and ContactId is empty, tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
+            else:
+                | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
+                  Greet the diner generically. If they request any private action (modify, cancel, booking history, new booking), tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
+            | Route to the most relevant subagent:
               - Actual modification requests (change date, time, party size, special requests), OR diner wants to look up an existing reservation but does not have their booking reference: go to reservation_support
               - How-to or policy questions about the modification process: go to platform_faq
               - Cancellation: go to cancellation_support
@@ -65,11 +75,6 @@ start_agent agent_router:
               - Intent unclear: go to ambiguous_question
               If the diner's message contains two distinct requests, note both. Transition for the primary request. After that subagent completes, they must use go_to_agent_router; at that point immediately offer to handle the secondary request using any restaurant or reservation context already in the session.
         actions:
-            get_contact_profile: @actions.get_contact_profile
-                description: "Load the authenticated diner's name and loyalty tier at session start"
-                with contactId = @variables.ContactId
-                set @variables.loyalty_tier = @outputs.loyaltyTier
-                available when @variables.ContactId != ""
             go_to_reservation_support: @utils.transition to @subagent.reservation_support
             go_to_cancellation_support: @utils.transition to @subagent.cancellation_support
             go_to_booking_support: @utils.transition to @subagent.booking_support
@@ -78,6 +83,9 @@ start_agent agent_router:
             go_to_escalation: @utils.transition to @subagent.escalation
             go_to_off_topic: @utils.transition to @subagent.off_topic
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
+
+
+
 
     actions:
         get_contact_profile:
@@ -92,7 +100,6 @@ start_agent agent_router:
                 lastName: string
                 loyaltyTier: string
                 email: string
-
 
 subagent reservation_support:
     label: "Reservation Support"
@@ -136,6 +143,9 @@ subagent reservation_support:
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
 
+
+
+
     actions:
         list_reservations:
             description: "List upcoming confirmed and pending reservations for the authenticated diner"
@@ -146,6 +156,7 @@ subagent reservation_support:
                     is_required: True
             outputs:
                 reservationSummaries: string
+
         get_reservation:
             description: "Retrieve current reservation details"
             target: "flow://Get_Reservation_Details"
@@ -165,6 +176,7 @@ subagent reservation_support:
                 reservationTime: string
                 restaurantName: string
                 specialRequests: string
+
         modify_reservation:
             description: "Modify a reservation date, time, or party size"
             target: "flow://Modify_Reservation"
@@ -193,7 +205,6 @@ subagent reservation_support:
 subagent cancellation_support:
     label: "Cancellation Support"
     description: "Handles reservation cancellation requests — including imperative short forms like 'cancel', 'cancel my booking', 'cancel reservation', 'cancel RES-XXXXXX', and 'I want to cancel'. Confirms cancellation intent, presents any applicable cancellation policies, and processes the cancellation."
-
     reasoning:
         instructions: ->
             if @variables.ContactId == "":
@@ -204,9 +215,12 @@ subagent cancellation_support:
                   On your FIRST response in this subagent only: if the diner's opening message mentions "tonight", "today", or a time implying within 24 hours, include this warning once: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." Do NOT include this warning in any turn after the first, even if the diner mentions timing again.
                   Ask for their booking reference if not already known.
                   Call get_reservation to retrieve the reservation details.
-                  PLATINUM TIER CHECK — after get_reservation returns: if partySize > 4, check @variables.loyalty_tier. If loyalty_tier is not "Platinum", tell the diner: "I'm sorry, cancellations for reservations of more than 4 guests require a Platinum loyalty tier account. I'll connect you with a support agent who can assist." Then use escalate_to_human. Do NOT proceed with cancel_reservation if partySize > 4 and loyalty_tier is not "Platinum".
-                  If partySize > 4 and loyalty_tier is "Platinum": proceed normally.
-                  If partySize is 4 or fewer: proceed normally for all diners.
+            if @variables.loyalty_tier == "Platinum":
+                | The diner holds Platinum loyalty status. They are eligible to cancel reservations of any party size. Proceed normally regardless of party size.
+            else:
+                | If the reservation party size is greater than 4, inform the diner: "I'm sorry, cancellations for reservations of more than 4 guests require a Platinum loyalty tier account. I'll connect you with a support agent who can assist." Then use escalate_to_human. Do NOT proceed with cancel_reservation if party size is greater than 4.
+            if @variables.ContactId != "":
+                | If partySize is 4 or fewer: proceed normally for all diners.
                   If the reservation is within 24 hours of now: confirm the fee applies — "This reservation is within 24 hours. A cancellation fee of $25 per person will apply. Would you like to proceed?" (Only say this if you have NOT already warned them.) If the diner confirms, proceed with cancel_reservation. If the diner declines, confirm the reservation is kept as-is and close warmly. Do NOT automatically transfer to a human agent for 24-hour cancellations.
                   If NOT within 24 hours: ask the diner to confirm cancellation and collect a brief cancellation reason, then proceed.
                   Do NOT call cancel_reservation more than once for the same request.
@@ -249,6 +263,7 @@ subagent cancellation_support:
                 reservationTime: string
                 restaurantName: string
                 specialRequests: string
+
         cancel_reservation:
             description: "Cancel a reservation by booking reference"
             target: "flow://Cancel_Reservation"
@@ -326,6 +341,9 @@ subagent restaurant_info:
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
 
+
+
+
     actions:
         search_knowledge:
             description: "Search Salesforce Knowledge for restaurant guide articles"
@@ -341,6 +359,7 @@ subagent restaurant_info:
                 articleContent: string
                 articleFound: object
                     complex_data_type_name: "lightning__booleanType"
+
         get_restaurant_info:
             description: "Query restaurant details from Account records (RecordType: Restaurant)"
             target: "apex://GetRestaurantInfoAction"
@@ -360,6 +379,7 @@ subagent restaurant_info:
                     complex_data_type_name: "lightning__integerType"
                 isActive: object
                     complex_data_type_name: "lightning__booleanType"
+
         get_restaurants_by_location:
             description: "Returns all active TableTopia restaurants in a given city, queried from Account ShippingCity"
             target: "apex://GetRestaurantsByLocationAction"
@@ -377,6 +397,7 @@ subagent restaurant_info:
                 isSuccess: object
                     complex_data_type_name: "lightning__booleanType"
                 errorMessage: string
+
         check_availability:
             description: "Check reservation availability at a restaurant on a given date"
             target: "apex://CheckRestaurantAvailabilityAction"
@@ -426,6 +447,9 @@ subagent platform_faq:
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
 
+
+
+
     actions:
         search_knowledge:
             # NOTE: Depends on TASK-A1 (Knowledge article deployment). Pre-configured — will be functional once articles are published.
@@ -472,6 +496,9 @@ subagent escalation:
             escalate_to_human: @utils.escalate
                 description: "Transfer the diner to a live human support agent via Omni-Channel."
 
+
+
+
     actions:
         create_escalation_case:
             description: "Create a high-priority support Case as fallback when no agent is available"
@@ -495,6 +522,7 @@ subagent escalation:
                 caseId: string
                 caseNumber: string
                 confirmationMessage: string
+
 subagent off_topic:
     label: "Off Topic"
     description: "Handles requests unrelated to dining, reservations, or restaurant services. Applies guardrails for sensitive categories and redirects appropriately."
@@ -571,6 +599,9 @@ subagent booking_support:
                 description: "Escalate to a human agent when booking cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
+
+
+
 
     actions:
         create_reservation:
