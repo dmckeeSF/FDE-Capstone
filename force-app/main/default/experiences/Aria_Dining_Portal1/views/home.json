@@ -7,16 +7,6 @@
   "regions" : [ {
     "components" : [ {
       "componentAttributes" : {
-        "headingText" : "Welcome to TableTopia",
-        "subText" : "Discover and book the perfect table — instantly confirmed, no fees"
-      },
-      "componentName" : "c:ariaHeroSearch",
-      "id" : "f1e2d3c4-b5a6-4789-90ab-cdef01234567",
-      "renderPriority" : "NEUTRAL",
-      "renditionMap" : { },
-      "type" : "component"
-    }, {
-      "componentAttributes" : {
         "bannerText" : "Find answers, manage your reservations, and get support from the TableTopia team",
         "bannerTextWithKnowledge" : "Explore other <a href=\"javascript:void(0)\" class=\"headlineArticles\">articles</a> and <a href=\"javascript:void(0)\" class=\"headlineDiscussions\">discussions</a> on this topic.",
         "bannerTextWithoutKnowledge" : "Explore other <a href=\"javascript:void(0)\" class=\"headlineDiscussions\">discussions</a> on this topic.",
