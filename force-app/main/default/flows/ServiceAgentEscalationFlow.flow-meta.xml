@@ -1,6 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <name>Generate_Case_Summary</name>
+        <label>Generate Case Summary</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>GenerateCaseSummaryAction</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Route_to_Service_Agent</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Route_to_Service_Agent</targetReference>
+        </faultConnector>
+        <inputParameters>
+            <name>caseId</name>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>GenerateCaseSummaryAction</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <actionCalls>
         <description>Escalations that route to omni channel</description>
         <name>Route_to_Service_Agent</name>
         <label>Route to Service Agent</label>
@@ -204,7 +226,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Route_to_Service_Agent</targetReference>
+            <targetReference>Generate_Case_Summary</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Route_to_Service_Agent</targetReference>

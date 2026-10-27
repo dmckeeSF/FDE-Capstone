@@ -72,13 +72,39 @@ The integration story needs to be verbalized during the demo, not just implied b
 
 **What we have:**
 - Apex test classes deployed with 90%+ coverage requirement enforced.
-- Test categories planned in TASK-T1: functional (happy path per subagent), edge (boundary inputs), multi-turn (context retention across turns), perturbation (paraphrase variations of key utterances), adversarial (prompt injection, identity spoofing, out-of-scope requests).
 - Flow fault paths implemented on all invocable action flows.
+- Testing Center batch suite (20 test cases) executed — results from `Aria_20_2026-10-22_13.36.18.csv`.
+- KPI coverage suite created (`tests/Aria-kpi-coverage.yaml`, 20 cases, pending org deploy via Testing Center UI).
+
+**Test outcome matrix — Aria v28 (run 2026-10-22, 20 cases):**
+
+| Dimension | Pass Rate | KPI Slide Target | Status |
+|---|---|---|---|
+| Subagent routing | 90% (18/20) | — | ✅ |
+| Action invocation | 70% (14/20) | First-attempt >80% | ⚠️ Below |
+| Response quality | 80% (16/20) | Output accuracy >95% | ⚠️ Below |
+| Coherence | 90% (18/20) | Context preservation >0.9 | ✅ |
+| Conciseness / format | 55% (11/20) | Format compliance >98% | ❌ Below |
+| Completeness | 55% (11/20) | — | ❌ Below |
+| Clean pass (all dimensions) | 30% (6/20) | Task completion >95% | ❌ Below |
+| Safety probes | 1/1 passed | Security violation rate <1% | ✅ |
+| Avg response latency | ~5,000 ms | Avg response time <2,000 ms | ❌ Below |
+
+**Known failures and remediation status:**
+
+| Issue | Severity | Fix Type | Status |
+|---|---|---|---|
+| `platform_faq` — `search_knowledge` not firing | P0 | Agent instruction | Pending |
+| Escalation returns system string instead of warm message | P0 | Agent instruction | Pending |
+| Italian restaurant query — asks for city before searching | P1 | Agent instruction | Pending |
+| Bellevue test spec expects `search_knowledge`, actual action is `get_restaurants_by_location` | P2 | YAML update | Pending |
+| Authenticated reservation actions fail in test context (no ContactId in batch) | Known gap | N/A — platform limitation in Testing Center | Will not fix |
+| Prompt injection spec has blank `expectedTopic` causing false-negative subagent assertion | P2 | YAML update | Pending |
 
 **Gap:**
-TASK-T1 has not been executed yet. The rubric requires evidence of testing results, not just a testing plan. If the demo includes a "testing and quality" slide that shows only the test categories without pass/fail results, it will not satisfy Level 3. The slide needs actual test run output: number of test cases per category, pass rate, and which failures were remediated.
+P0 bugs (platform_faq and escalation message) are instruction-only fixes — no Apex or Flow changes needed. Fixing both raises projected clean-pass rate from 30% to approximately 60–65%. Conciseness and format compliance failures are partially test-calibration artifacts (off-topic brief refusals scored harshly) and partially the "please hold" narration pattern. Latency (~5s average) is a platform characteristic of LLM reasoning agents and is unlikely to reach the <2,000ms target without response caching; it should be framed as "typical 4–7 seconds, faster than average human Tier-1 handling time" in the presentation.
 
-**Action required:** TASK-T1 must be completed before the demo. The test results output (pass/fail by category, total pass rate, any failures with remediation notes) should be captured and added to the presentation slide. This is a time-dependent gap — block time for TASK-T1 execution at least 48 hours before the demo to allow for fix cycles.
+**Action required:** Fix P0 agent instructions (platform_faq grounding, escalation warm message) and re-run the test suite before the demo. Update `tests/Aria-kpi-coverage.yaml` YAML with corrected Bellevue action name and prompt injection `expectedTopic`. Deploy KPI suite via Testing Center UI and run it to establish the KPI-mapped baseline. Capture final pass rates for the presentation slide.
 
 ---
 
@@ -105,7 +131,7 @@ The warm transfer moment — the most architecturally distinctive part of the de
 | Solution Architecture | Complete stack, no diagram | High | Yes — diagram required for L3 |
 | Agent Design | Complete, single-turn demo | Medium | No — add multi-turn path |
 | Integration | Production-ready, not verbalized | Low | No — one sentence in script |
-| Testing and Quality | Plan exists, no results | High | Yes — run TASK-T1 first |
+| Testing and Quality | Results exist, 2 P0 bugs open | Medium | Yes — fix P0s + re-run before demo |
 | Presentation and Demo | Live but unrehearsed escalation | High | Yes — rehearse warm transfer |
 
 **Critical path before demo:** Architecture diagram + TASK-T1 execution + warm transfer rehearsal.

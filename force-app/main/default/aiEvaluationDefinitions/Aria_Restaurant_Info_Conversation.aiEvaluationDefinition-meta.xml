@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiEvaluationDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>Aria Restaurant Info Conversation Tests</name>
+    <subjectName>Aria</subjectName>
+    <subjectType>AGENT</subjectType>
+    <testCase>
+        <expectation>
+            <expectedValue>restaurant_info</expectedValue>
+            <name>topic_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>[&apos;get_restaurant_info&apos;]</expectedValue>
+            <name>action_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>Agent correctly states that parking at The Bellevue Table is very limited with no accessible or handicap parking on-site, and that the restaurant is not wheelchair accessible. Agent does NOT say the restaurant is fully accessible or has accessible parking. Agent suggests rideshare or public transit as alternatives.
+</expectedValue>
+            <name>bot_response_rating</name>
+        </expectation>
+        <inputs>
+            <utterance>I have a reservation at The Bellevue Table. What is parking like there?</utterance>
+        </inputs>
+        <number>1</number>
+    </testCase>
+    <testCase>
+        <expectation>
+            <expectedValue>restaurant_info</expectedValue>
+            <name>topic_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>[&apos;get_restaurant_info&apos;]</expectedValue>
+            <name>action_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>Agent correctly states The Bellevue Table is NOT wheelchair accessible — it has steps at the entrance and no ramp access or accessible restrooms. Agent does not contradict the Knowledge article or describe it as accessible.
+</expectedValue>
+            <name>bot_response_rating</name>
+        </expectation>
+        <inputs>
+            <utterance>Is The Bellevue Table wheelchair accessible?</utterance>
+            <conversationHistory>
+                <role>user</role>
+                <message>Tell me about restaurants in Bellevue</message>
+                <index>0</index>
+            </conversationHistory>
+            <conversationHistory>
+                <role>agent</role>
+                <message>Here are some restaurant options in Bellevue from TableTopia: The Lakeview Grill — American, $$$, Lakeside dining with seasonal local ingredients. The Bellevue Table — Pacific Northwest, $$$$, Chef-driven tasting menu in downtown Bellevue. Saffron &amp; Sage — Indian, $$, Modern Indian cuisine with vegan and gluten-free options. Would you like more details or availability for any of these?
+</message>
+                <topic>restaurant_info</topic>
+                <index>1</index>
+            </conversationHistory>
+        </inputs>
+        <number>2</number>
+    </testCase>
+    <testCase>
+        <expectation>
+            <expectedValue>restaurant_info</expectedValue>
+            <name>topic_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>[&apos;search_knowledge&apos;]</expectedValue>
+            <name>action_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>Agent searches Knowledge articles and presents only Italian restaurants that exist in the TableTopia catalog. Agent does NOT suggest restaurants from general knowledge (e.g. Olive Garden, Carmine&apos;s, or any chain not in the platform). If fewer than three results are found, agent states how many were found rather than filling slots with hallucinated options.
+</expectedValue>
+            <name>bot_response_rating</name>
+        </expectation>
+        <inputs>
+            <utterance>What Italian restaurants do you have?</utterance>
+        </inputs>
+        <number>3</number>
+    </testCase>
+    <testCase>
+        <expectation>
+            <expectedValue>restaurant_info</expectedValue>
+            <name>topic_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>[&apos;search_knowledge&apos;]</expectedValue>
+            <name>action_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>Agent immediately searches Knowledge for Bellevue restaurants without asking the diner to log in or provide any credentials. Agent presents up to 3 TableTopia restaurant options with name, cuisine, price range, and a brief highlight. Agent does not mention authentication or account status.
+</expectedValue>
+            <name>bot_response_rating</name>
+        </expectation>
+        <inputs>
+            <utterance>I&apos;m looking for a nice place for a date night in Bellevue</utterance>
+            <contextVariable>
+                <variableName>ContactId</variableName>
+                <variableValue>REPLACE_WITH_CONTACT_ID</variableValue>
+            </contextVariable>
+        </inputs>
+        <number>4</number>
+    </testCase>
+    <testCase>
+        <expectation>
+            <expectedValue>restaurant_info</expectedValue>
+            <name>topic_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>[&apos;check_availability&apos;]</expectedValue>
+            <name>action_sequence_match</name>
+        </expectation>
+        <expectation>
+            <expectedValue>Agent calls check_availability for Bella Notte Trattoria on the upcoming Saturday at 7:00 PM for a party of 2, and reports the availability result. Agent does not ask the diner to repeat the restaurant name or party size since that context was already established in the prior turn.
+</expectedValue>
+            <name>bot_response_rating</name>
+        </expectation>
+        <inputs>
+            <utterance>Is Bella Notte Trattoria available this Saturday at 7pm for 2?</utterance>
+            <contextVariable>
+                <variableName>ContactId</variableName>
+                <variableValue>REPLACE_WITH_CONTACT_ID</variableValue>
+            </contextVariable>
+            <conversationHistory>
+                <role>user</role>
+                <message>What Italian restaurants do you have?</message>
+                <index>0</index>
+            </conversationHistory>
+            <conversationHistory>
+                <role>agent</role>
+                <message>Here are some Italian restaurant options on TableTopia: Bella Notte Trattoria — Italian, $$$, Romantic atmosphere and house-made pastas. Trattoria Bella — Italian, $$, Classic pasta dishes and wood-fired pizzas. Osteria Firenze — Italian, $$$, Upscale Tuscan cuisine with an extensive wine list. Would you like more details or availability for any of these?
+</message>
+                <topic>restaurant_info</topic>
+                <index>1</index>
+            </conversationHistory>
+        </inputs>
+        <number>5</number>
+    </testCase>
+</AiEvaluationDefinition>

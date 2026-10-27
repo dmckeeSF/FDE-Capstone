@@ -192,12 +192,13 @@ subagent reservation_support:
 
 subagent cancellation_support:
     label: "Cancellation Support"
-    description: "Handles reservation cancellation requests. Confirms cancellation intent, presents any applicable cancellation policies, and processes the cancellation."
+    description: "Handles reservation cancellation requests — including imperative short forms like 'cancel', 'cancel my booking', 'cancel reservation', 'cancel RES-XXXXXX', and 'I want to cancel'. Confirms cancellation intent, presents any applicable cancellation policies, and processes the cancellation."
 
     reasoning:
         instructions: ->
             if @variables.ContactId == "":
                 | To cancel your reservation you need to be logged in. Please sign in to the diner portal and return to this chat — I'll be here when you're ready.
+                  Do not take any further cancellation steps. Ask: "Is there anything else I can help you with?" If yes, use go_to_agent_router. If no, close warmly and end the conversation.
             if @variables.ContactId != "":
                 | Help the diner cancel their reservation.
                   On your FIRST response in this subagent only: if the diner's opening message mentions "tonight", "today", or a time implying within 24 hours, include this warning once: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." Do NOT include this warning in any turn after the first, even if the diner mentions timing again.
@@ -282,41 +283,46 @@ subagent restaurant_info:
               If the diner is browsing or asking for suggestions (e.g. "top restaurants", "what do you
               have", "restaurants near me", "something in Bellevue", "restaurants in [city]"):
               DO NOT ask for a specific restaurant name. Instead, act immediately:
-              - If the diner mentioned a city or area: call search_knowledge with "restaurant guide [city]"
-              - If the diner mentioned a cuisine or other preference: call search_knowledge with
-                "restaurant guide [preference]"
+              - If the diner mentioned a city or area: call get_restaurants_by_location with that city.
+                This queries Account records by ShippingCity and returns every active TableTopia
+                restaurant in that city — do not use search_knowledge for city-based discovery.
+              - If the diner mentioned a cuisine type, price range, dietary need, or other non-location
+                preference: call search_knowledge with "restaurant guide [preference]"
               - If there is truly no location or preference at all: ask ONE question —
                 "Are you looking for a particular city, cuisine, or dining style?" — then search.
-              CRITICAL: Only present restaurants that appear in the Knowledge article search results.
-              NEVER suggest restaurants from general knowledge or outside the TableTopia platform.
-              If the search returns fewer than three matches, present only what was found and say
-              "We currently have [N] restaurant(s) in that area on TableTopia."
-              Default to returning up to THREE options from the search results. Prioritize the
-              diner's mentioned city; fill remaining slots from nearby-city results if available.
-              Apply any additional criteria the diner gave (cuisine, price range, dietary needs) to
-              select the best matches from the search results only.
-              Present each result as a short option card:
-              "**[Restaurant Name]** — [cuisine], [price range], [one-line highlight from the article]"
-              then ask: "Would you like more details or availability for any of these?"
+              CRITICAL: You MUST call get_restaurants_by_location, search_knowledge, or get_restaurant_info before naming any restaurant in your response. If you have not called one of these actions yet, call it now — do not write any restaurant name, cuisine, or detail from memory.
+              Only present restaurants that appear in the action results. NEVER name a restaurant from general knowledge or training data. If a restaurant is not in the results, it does not exist on this platform.
+              If get_restaurants_by_location returns restaurantCount = 0, say "I didn't find any TableTopia restaurants in [city]." and offer to search by cuisine or suggest a nearby city.
+              If get_restaurants_by_location returns results, present each as a short option card using the actual values returned. Format — write the restaurant name in bold, then cuisine type and price range from the results. Do NOT output bracket placeholders.
+              Example of the correct format: "**The Bellevue Table** — Pacific Northwest, $$$"
+              Default to returning up to THREE options from the action results only. Apply any additional criteria the diner gave (cuisine, price range, dietary needs) to filter down from the results. If fewer than three restaurants are returned, present only those — do NOT invent additional restaurants to reach three.
+              Then ask: "Would you like more details or availability for any of these?"
 
+              CONTEXT: After presenting a list of restaurants, remember those exact restaurant names for the rest of this conversation. If the diner asks a follow-up question about "the restaurants", "parking", "accessibility", or any other attribute without naming a specific one, apply the question to ALL restaurants you just presented — do NOT ask the diner to repeat which restaurant they meant. Call search_knowledge for each restaurant by name to retrieve full details, then answer for each in your response.
+
+              If search_knowledge or get_restaurant_info returns no results for a specific restaurant detail, respond with: "I'm sorry, I wasn't able to find [detail] for [restaurant name]. For the most up-to-date information, I'd recommend contacting the restaurant directly or checking their website."
               Use check_availability to answer questions about table availability on a specific date.
               Write all data directly in your text response — do NOT use show_command.
-              If no information is found, escalate to a human agent.
+              If no information is found after searching, apologize and offer to help with something else or connect with a human agent.
               After answering, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
         actions:
             get_restaurant_info: @actions.get_restaurant_info
-                description: "Look up restaurant details by name"
+                description: "REQUIRED: Call this action immediately when the diner mentions a specific restaurant name. Do not provide any restaurant details without first calling this action."
                 with restaurantNames = ...
+            get_restaurants_by_location: @actions.get_restaurants_by_location
+                description: "REQUIRED for city/area discovery: Call this action when the diner asks about restaurants in a specific city or area. Queries Account ShippingCity — returns all active restaurants in that city. Do NOT use search_knowledge for city-based queries."
+                with city = ...
+                with state = ...
             search_knowledge: @actions.search_knowledge
-                description: "Search Knowledge articles to discover restaurants and get guide content"
+                description: "Call this action for cuisine type, preference, dietary, or non-location browsing queries. Also use for follow-up detail requests about a specific restaurant. Use queries like 'restaurant guide Italian' or 'restaurant guide vegetarian'."
                 with searchQuery = ...
                 with dataCategory = ...
             check_availability: @actions.check_availability
-                description: "Check table availability at a restaurant on a specific date"
+                description: "REQUIRED: Call this action immediately when the diner asks about availability, open tables, or wants to know if a restaurant is bookable on a specific date."
                 with restaurantName = ...
                 with reservationDate = ...
             escalate_to_human: @utils.transition to @subagent.escalation
-                description: "Escalate to a human agent when restaurant information is not available."
+                description: "Escalate to a human agent only after searching and confirming no information is available."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
 
@@ -354,6 +360,23 @@ subagent restaurant_info:
                     complex_data_type_name: "lightning__integerType"
                 isActive: object
                     complex_data_type_name: "lightning__booleanType"
+        get_restaurants_by_location:
+            description: "Returns all active TableTopia restaurants in a given city, queried from Account ShippingCity"
+            target: "apex://GetRestaurantsByLocationAction"
+            inputs:
+                city: string
+                    description: "City name to search, e.g. 'Bellevue' or 'Seattle'"
+                    is_required: True
+                state: string
+                    description: "Optional state abbreviation to narrow results, e.g. 'WA'"
+            outputs:
+                restaurantList: string
+                restaurantCount: object
+                    complex_data_type_name: "lightning__integerType"
+                citySearched: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
         check_availability:
             description: "Check reservation availability at a restaurant on a given date"
             target: "apex://CheckRestaurantAvailabilityAction"
@@ -386,19 +409,20 @@ subagent platform_faq:
     reasoning:
         instructions: ->
             | Answer the diner's general question about platform policies, booking procedures, or cancellation rules.
-              Use the search_knowledge action to find relevant Knowledge articles.
+              Step 1 — ALWAYS call search_knowledge before composing any response. This is mandatory for every request in this subagent, no exceptions.
+              Step 2 — Present the article content directly in your text response. Do NOT use show_command.
+              Step 3 — After answering, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
               Data categories in scope: Cancellation Policy, Booking FAQ, Accessibility, Restaurant Policies.
-              Include the article content directly in your text response — do NOT use show_command.
-              If no Knowledge article answers the question, escalate to a human agent.
+              ESCALATION RULE: Do NOT use escalate_to_human unless (a) the diner explicitly says they want to speak with a human, OR (b) you have completed Step 1 and the search returned no matching article. Escalating before calling search_knowledge is a critical error.
+              NEVER answer policy questions from memory. If you have not called search_knowledge yet, call it now before doing anything else.
               Do NOT answer questions outside the scope of dining platform policies.
-              After answering the diner's question, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router to continue. If no, close the conversation warmly.
         actions:
             search_knowledge: @actions.search_knowledge
-                description: "Search Knowledge articles for platform policies and FAQs"
+                description: "REQUIRED: Call this action first for every policy or FAQ question before responding. Search for the relevant Knowledge article before answering."
                 with searchQuery = ...
                 with dataCategory = ...
             escalate_to_human: @utils.transition to @subagent.escalation
-                description: "Escalate when no Knowledge article answers the diner's question."
+                description: "Use ONLY when the diner explicitly requests a human agent, or after search_knowledge confirms no article addresses their question. Do NOT use for standard policy questions."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
 
@@ -483,7 +507,8 @@ subagent off_topic:
               2. Payment disputes — escalate immediately.
               3. Food safety or health complaints — say: "That's outside what I can help with today. Let me connect you with our support team." then escalate.
               4. Competitor comparisons — decline and redirect: "I can only help with our platform's restaurants and reservations."
-              5. All other off-topic requests — politely explain what you can help with and redirect.
+              5. Restaurants outside the TableTopia platform or in cities not on the platform (e.g. Paris, Tokyo, New York) — decline clearly: "TableTopia only covers restaurants available on our platform. I'm not able to recommend restaurants outside of it." Do NOT offer to help find restaurants in non-platform locations. Do NOT suggest the diner search elsewhere.
+              6. All other off-topic requests — politely explain what you can help with and redirect.
               Do not answer general knowledge questions.
               After declining or redirecting, ask: "Is there something I can help you with regarding your reservation or a restaurant?" If yes, use go_to_agent_router to continue. If no, close the conversation warmly.
               Rules:

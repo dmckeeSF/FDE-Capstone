@@ -1,0 +1,6 @@
+Scenario,Conversation History,Expected Actions
+A diner with a reservation at The Bellevue Table asks what parking is like and whether the restaurant is wheelchair accessible,[],['get_restaurant_info']
+A diner who was shown Bellevue restaurant options asks whether The Bellevue Table is wheelchair accessible,"[{""role"":""user"",""message"":""Tell me about restaurants in Bellevue""},{""role"":""agent"",""message"":""Here are some Bellevue options: The Lakeview Grill, The Bellevue Table, Saffron and Sage. Would you like more details?""}]",['get_restaurant_info']
+A diner asks what Italian restaurants are available on the platform and expects only TableTopia catalog results with no hallucinated suggestions,[],['search_knowledge']
+A diner looking for a date night spot in Bellevue expects restaurant discovery results without being asked to log in,[],['search_knowledge']
+A diner who was shown Italian restaurant options asks whether Bella Notte Trattoria is available this Saturday at 7pm for 2 people,"[{""role"":""user"",""message"":""What Italian restaurants do you have?""},{""role"":""agent"",""message"":""Here are Italian options: Bella Notte Trattoria, Trattoria Bella, Osteria Firenze. Would you like availability?""}]",['check_availability']

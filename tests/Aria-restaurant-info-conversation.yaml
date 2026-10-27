@@ -1,0 +1,112 @@
+name: "Aria Restaurant Info Conversation Tests"
+subjectType: AGENT
+subjectName: Aria
+
+# 5 conversation-level tests verifying restaurant info grounding against Knowledge articles.
+# Tests 1–3 run unauthenticated (no ContactId). Tests 4–5 simulate an authenticated session.
+#
+# AUTHENTICATED TESTS (4–5): Set contextVariables.ContactId to a real Contact Id before
+# deploying. Retrieve a valid Id with:
+#   sf data query -q "SELECT Id FROM Contact LIMIT 1" --target-org FdeCap --json
+# Replace the placeholder value below before running sf agent test create.
+
+testCases:
+
+  # ── TEST 1 ────────────────────────────────────────────────────────────────────
+  # Non-authenticated | Single-turn | Specific restaurant parking & accessibility
+  # Verifies the corrected Bellevue Table Knowledge article (limited parking, not
+  # wheelchair accessible) is returned instead of old hallucinated "fully accessible" answer.
+  - utterance: "I have a reservation at The Bellevue Table. What is parking like there?"
+    expectedTopic: restaurant_info
+    expectedActions:
+      - get_restaurant_info
+    expectedOutcome: >
+      Agent correctly states that parking at The Bellevue Table is very limited with
+      no accessible or handicap parking on-site, and that the restaurant is not
+      wheelchair accessible. Agent does NOT say the restaurant is fully accessible
+      or has accessible parking. Agent suggests rideshare or public transit as
+      alternatives.
+
+  # ── TEST 2 ────────────────────────────────────────────────────────────────────
+  # Non-authenticated | Multi-turn | Discovery then accessibility follow-up
+  # Simulates a diner who first asks for Bellevue restaurants, then drills into
+  # accessibility details on The Bellevue Table.
+  - utterance: "Is The Bellevue Table wheelchair accessible?"
+    expectedTopic: restaurant_info
+    expectedActions:
+      - get_restaurant_info
+    expectedOutcome: >
+      Agent correctly states The Bellevue Table is NOT wheelchair accessible —
+      it has steps at the entrance and no ramp access or accessible restrooms.
+      Agent does not contradict the Knowledge article or describe it as accessible.
+    conversationHistory:
+      - role: user
+        message: "Tell me about restaurants in Bellevue"
+      - role: agent
+        topic: restaurant_info
+        message: >
+          Here are some restaurant options in Bellevue from TableTopia:
+          The Lakeview Grill — American, $$$, Lakeside dining with seasonal local ingredients.
+          The Bellevue Table — Pacific Northwest, $$$$, Chef-driven tasting menu in downtown Bellevue.
+          Saffron & Sage — Indian, $$, Modern Indian cuisine with vegan and gluten-free options.
+          Would you like more details or availability for any of these?
+
+  # ── TEST 3 ────────────────────────────────────────────────────────────────────
+  # Non-authenticated | Single-turn | Catalog integrity — no hallucination
+  # Verifies Aria only returns TableTopia-catalog Italian restaurants and does not
+  # hallucinate well-known non-catalog restaurants (e.g. Olive Garden, Carmine's).
+  - utterance: "What Italian restaurants do you have?"
+    expectedTopic: restaurant_info
+    expectedActions:
+      - search_knowledge
+    expectedOutcome: >
+      Agent searches Knowledge articles and presents only Italian restaurants that
+      exist in the TableTopia catalog. Agent does NOT suggest restaurants from
+      general knowledge (e.g. Olive Garden, Carmine's, or any chain not in the
+      platform). If fewer than three results are found, agent states how many were
+      found rather than filling slots with hallucinated options.
+
+  # ── TEST 4 ────────────────────────────────────────────────────────────────────
+  # Authenticated | Single-turn | Restaurant discovery — no login required
+  # Confirms that restaurant discovery works for a logged-in diner exactly the same
+  # as for a guest — no auth gate should block restaurant info.
+  - utterance: "I'm looking for a nice place for a date night in Bellevue"
+    expectedTopic: restaurant_info
+    expectedActions:
+      - search_knowledge
+    expectedOutcome: >
+      Agent immediately searches Knowledge for Bellevue restaurants without asking
+      the diner to log in or provide any credentials. Agent presents up to 3
+      TableTopia restaurant options with name, cuisine, price range, and a brief
+      highlight. Agent does not mention authentication or account status.
+    contextVariables:
+      - name: ContactId
+        value: "REPLACE_WITH_CONTACT_ID"
+
+  # ── TEST 5 ────────────────────────────────────────────────────────────────────
+  # Authenticated | Multi-turn | Discovery then availability check
+  # Verifies that after discovering Italian restaurants, an authenticated diner can
+  # immediately ask about availability and Aria calls check_availability.
+  - utterance: "Is Bella Notte Trattoria available this Saturday at 7pm for 2?"
+    expectedTopic: restaurant_info
+    expectedActions:
+      - check_availability
+    expectedOutcome: >
+      Agent calls check_availability for Bella Notte Trattoria on the upcoming
+      Saturday at 7:00 PM for a party of 2, and reports the availability result.
+      Agent does not ask the diner to repeat the restaurant name or party size since
+      that context was already established in the prior turn.
+    contextVariables:
+      - name: ContactId
+        value: "REPLACE_WITH_CONTACT_ID"
+    conversationHistory:
+      - role: user
+        message: "What Italian restaurants do you have?"
+      - role: agent
+        topic: restaurant_info
+        message: >
+          Here are some Italian restaurant options on TableTopia:
+          Bella Notte Trattoria — Italian, $$$, Romantic atmosphere and house-made pastas.
+          Trattoria Bella — Italian, $$, Classic pasta dishes and wood-fired pizzas.
+          Osteria Firenze — Italian, $$$, Upscale Tuscan cuisine with an extensive wine list.
+          Would you like more details or availability for any of these?

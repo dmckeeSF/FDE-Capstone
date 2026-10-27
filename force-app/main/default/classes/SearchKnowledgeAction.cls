@@ -21,72 +21,68 @@ public with sharing class SearchKnowledgeAction {
 
     @InvocableMethod(label='Search Knowledge Articles' description='Search Salesforce Knowledge for FAQ and policy articles')
     public static List<SearchResult> searchKnowledge(List<SearchRequest> requests) {
-        // Collect all non-blank queries and run one SOQL with OR conditions
-        List<String> queries = new List<String>();
-        for (SearchRequest req : requests) {
-            if (String.isNotBlank(req.searchQuery)) {
-                queries.add('%' + String.escapeSingleQuotes(req.searchQuery) + '%');
-            }
-        }
-
-        // Single SOQL: fetch top articles matching any of the query terms
-        Map<String, Knowledge__kav> bestByQuery = new Map<String, Knowledge__kav>();
-        if (!queries.isEmpty()) {
-            // Build one query per unique search term using a Map to deduplicate
-            // SOQL doesn't support dynamic OR across variable lists, so we
-            // query the broadest set and match in Apex to stay within 1 SOQL.
-            Set<String> querySet = new Set<String>(queries);
-            List<Knowledge__kav> articles = [
-                SELECT Title, Detail__c, Summary
-                FROM Knowledge__kav
-                WHERE PublishStatus = 'Online'
-                  AND Language = 'en_US'
-                ORDER BY ArticleTotalViewCount DESC NULLS LAST
-                LIMIT 200
-            ];
-
-            // Match each article to the best query term
-            for (String q : querySet) {
-                String term = q.replace('%', '').toLowerCase();
-                for (Knowledge__kav art : articles) {
-                    if ((art.Title != null && art.Title.toLowerCase().contains(term))
-                        || (art.Summary != null && art.Summary.toLowerCase().contains(term))) {
-                        bestByQuery.put(q, art);
-                        break; // articles are sorted by view count; first match wins
-                    }
-                }
-            }
-        }
-
         List<SearchResult> results = new List<SearchResult>();
         for (SearchRequest req : requests) {
-            SearchResult res = new SearchResult();
-            res.articleFound = false;
-
-            if (String.isBlank(req.searchQuery)) {
-                res.articleTitle   = '';
-                res.articleContent = '';
-                results.add(res);
-                continue;
-            }
-
-            String queryKey = '%' + String.escapeSingleQuotes(req.searchQuery) + '%';
-            Knowledge__kav art = bestByQuery.get(queryKey);
-
-            if (art != null) {
-                res.articleFound = true;
-                res.articleTitle = art.Title;
-                String content = art.Detail__c != null ? art.Detail__c : art.Summary;
-                res.articleContent = content != null ? content.replaceAll('<[^>]+>', '').trim() : '';
-                if (res.articleContent.length() > 2000) {
-                    res.articleContent = res.articleContent.substring(0, 2000) + '...';
-                }
-            } else {
-                res.articleTitle   = '';
-                res.articleContent = '';
-            }
-            results.add(res);
+            results.add(runSearch(req));
         }
         return results;
+    }
+
+    private static SearchResult runSearch(SearchRequest req) {
+        SearchResult res = new SearchResult();
+        res.articleFound = false;
+        res.articleTitle = '';
+        res.articleContent = '';
+
+        if (String.isBlank(req.searchQuery)) {
+            return res;
+        }
+
+        // Use SOSL for full-text search — handles natural language queries, partial
+        // matches, and searches across Title, Summary, and Detail__c automatically.
+        // Phrase search first; fall back to tokenized if no hits.
+        String cleanQuery = req.searchQuery.replaceAll('[^a-zA-Z0-9 \'-]', ' ').trim();
+        List<Knowledge__kav> hits = soslSearch('"' + cleanQuery + '"');
+        if (hits.isEmpty()) {
+            hits = soslSearch(cleanQuery);
+        }
+
+        if (hits.isEmpty()) {
+            return res;
+        }
+
+        // Concatenate up to 3 articles so the agent can present a list
+        List<String> titles = new List<String>();
+        List<String> contents = new List<String>();
+        for (Integer i = 0; i < Math.min(3, hits.size()); i++) {
+            Knowledge__kav art = hits[i];
+            titles.add(art.Title);
+            String body = art.Detail__c != null ? art.Detail__c : art.Summary;
+            if (body != null) {
+                body = body.replaceAll('<[^>]+>', '').trim();
+                if (body.length() > 1500) {
+                    body = body.substring(0, 1500) + '...';
+                }
+                contents.add('=== ' + art.Title + ' ===\n' + body);
+            }
+        }
+
+        res.articleFound   = true;
+        res.articleTitle   = String.join(titles, '\n');
+        res.articleContent = String.join(contents, '\n\n');
+        return res;
+    }
+
+    private static List<Knowledge__kav> soslSearch(String term) {
+        try {
+            List<List<SObject>> raw = Search.query(
+                'FIND {' + String.escapeSingleQuotes(term) + '} IN ALL FIELDS RETURNING ' +
+                'Knowledge__kav(Title, Detail__c, Summary ' +
+                'WHERE PublishStatus = \'Online\' AND Language = \'en_US\') LIMIT 5'
+            );
+            return (List<Knowledge__kav>) raw[0];
+        } catch (Exception e) {
+            return new List<Knowledge__kav>();
+        }
     }
 }
