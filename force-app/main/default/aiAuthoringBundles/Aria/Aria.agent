@@ -449,7 +449,7 @@ subagent restaurant_info:
 
 subagent platform_faq:
     label: "Platform FAQ"
-    description: "Answers general questions about cancellation policies, booking procedures, and platform rules using Knowledge articles. No authentication required. Functional once TASK-A1 Knowledge articles are published."
+    description: "Answers general questions about cancellation policies, booking procedures, and platform rules using Knowledge articles. No authentication required."
 
     reasoning:
         instructions: ->
@@ -463,11 +463,11 @@ subagent platform_faq:
               Do NOT answer questions outside the scope of dining platform policies.
         actions:
             search_knowledge: @actions.search_knowledge
-                description: "REQUIRED: Call this action first for every policy or FAQ question before responding. Search for the relevant Knowledge article before answering."
+                description: "REQUIRED: Call this action first for every policy or FAQ question before responding."
                 with searchQuery = ...
                 with dataCategory = ...
             escalate_to_human: @utils.transition to @subagent.escalation
-                description: "Use ONLY when the diner explicitly requests a human agent, or after search_knowledge confirms no article addresses their question. Do NOT use for standard policy questions."
+                description: "Use ONLY when the diner explicitly requests a human agent, or after search_knowledge confirms no article addresses their question."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
 
@@ -476,7 +476,6 @@ subagent platform_faq:
 
     actions:
         search_knowledge:
-            # NOTE: Depends on TASK-A1 (Knowledge article deployment). Pre-configured — will be functional once articles are published.
             description: "Einstein Search Grounding on Salesforce Knowledge, scoped to platform FAQ data categories"
             target: "apex://SearchKnowledgeAction"
             inputs:
