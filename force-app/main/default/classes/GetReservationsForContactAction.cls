@@ -1,4 +1,4 @@
-public with sharing class GetReservationsForContactAction {
+public without sharing class GetReservationsForContactAction {
 
     @InvocableMethod(label='Get Reservations For Contact' description='Lists upcoming confirmed and pending reservations for the authenticated diner')
     public static List<ReservationListDTO> execute(List<ReservationListRequest> requests) {

@@ -1,4 +1,4 @@
-public with sharing class GetContactProfileAction {
+public without sharing class GetContactProfileAction {
 
     @InvocableMethod(label='Get Contact Profile' description='Retrieves authenticated diner profile fields by Contact Id')
     public static List<ContactProfileDTO> execute(List<ContactRequest> requests) {

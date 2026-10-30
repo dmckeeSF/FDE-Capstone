@@ -38,6 +38,8 @@ variables:
         description: "The authenticated diner's loyalty tier — populated at session start by get_loyalty_tier from external loyalty program API"
     contact_email: mutable string = ""
         description: "The authenticated diner's email address — populated by get_contact_profile and used for external loyalty lookup"
+    first_name: mutable string = ""
+        description: "The authenticated diner's first name — populated at session start by get_contact_profile"
 
 language:
     default_locale: "en_US"
@@ -54,18 +56,19 @@ start_agent agent_router:
                 run @actions.get_contact_profile
                     with contactId = @variables.ContactId
                     set @variables.contact_email = @outputs.email
+                    set @variables.first_name = @outputs.firstName
                 run @actions.get_loyalty_tier
                     with contactEmail = @variables.contact_email
                     set @variables.loyalty_tier = @outputs.loyaltyTier
             if @variables.ContactId != "":
                 | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
                   The diner is authenticated. Greet them by first name and reference their loyalty tier throughout.
-                  If the diner requests any private action (modify, cancel, booking history, new booking) and ContactId is empty, tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
             else:
                 | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
-                  Greet the diner generically. If they request any private action (modify, cancel, booking history, new booking), tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
-            | Route to the most relevant subagent:
-              - Actual modification requests (change date, time, party size, special requests), OR diner wants to look up an existing reservation but does not have their booking reference: go to reservation_support
+                  Greet the diner generically.
+            | Route to the most relevant subagent. For private actions (view/modify/cancel reservations, new booking) where the diner is not logged in — STILL route to the correct subagent below. The subagent will ask them to log in. Do NOT route to escalation because a diner is unauthenticated.
+              - View upcoming or past reservations, reservation history, "what are my bookings", "tell me about my reservations", "what reservations do I have": go to reservation_support
+              - Actual modification requests (change date, time, party size, special requests): go to reservation_support
               - How-to or policy questions about the modification process: go to platform_faq
               - Cancellation: go to cancellation_support
               - Book a new table / make a reservation / new booking: go to booking_support
@@ -74,7 +77,7 @@ start_agent agent_router:
               - General platform policies, booking procedures, cancellation fees: go to platform_faq
               - Competitor comparisons or other reservation platforms (e.g. OpenTable, Resy): go to off_topic
               - Loyalty tier change / upgrade / modify tier or status: go to off_topic
-              - Diner asks to speak with a human agent or escalate: go to escalation
+              - Diner explicitly asks to speak with a human agent or to escalate: go to escalation
               - Off-topic or unrelated to dining: go to off_topic
               - Diner says they have "a question about my booking", "I need help with my reservation", or similar vague phrasing without specifying modify, cancel, or an information request: go to ambiguous_question
               - Intent unclear: go to ambiguous_question
@@ -126,6 +129,8 @@ subagent reservation_support:
 
     reasoning:
         instructions: ->
+            if @variables.ContactId != "" and @variables.first_name != "":
+                | Greet the diner by first name: "Hi {!@variables.first_name}!" — do this exactly once at the start of your first response in this subagent.
             if @variables.ContactId == "":
                 | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
                   Do NOT escalate or transfer to a human agent — just ask the diner to log in.

@@ -1,4 +1,4 @@
-public with sharing class GetRestaurantsByLocationAction {
+public without sharing class GetRestaurantsByLocationAction {
 
     public class Request {
         @InvocableVariable(label='City' required=true)
