@@ -35,7 +35,9 @@ variables:
     case_id: mutable string = ""
         description: "Stores the Case ID created during escalation for use in the prompt template"
     loyalty_tier: mutable string = ""
-        description: "The authenticated diner's loyalty tier (e.g. Platinum, Gold, Silver) — populated at session start by get_contact_profile"
+        description: "The authenticated diner's loyalty tier — populated at session start by get_loyalty_tier from external loyalty program API"
+    contact_email: mutable string = ""
+        description: "The authenticated diner's email address — populated by get_contact_profile and used for external loyalty lookup"
 
 language:
     default_locale: "en_US"
@@ -51,6 +53,9 @@ start_agent agent_router:
             if @variables.ContactId != "":
                 run @actions.get_contact_profile
                     with contactId = @variables.ContactId
+                    set @variables.contact_email = @outputs.email
+                run @actions.get_loyalty_tier
+                    with contactEmail = @variables.contact_email
                     set @variables.loyalty_tier = @outputs.loyaltyTier
             if @variables.ContactId != "":
                 | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
@@ -100,6 +105,20 @@ start_agent agent_router:
                 lastName: string
                 loyaltyTier: string
                 email: string
+
+        get_loyalty_tier:
+            description: "Retrieve the diner's loyalty tier from the external loyalty program API (outside Salesforce)"
+            target: "apex://GetLoyaltyTierAction"
+            inputs:
+                contactEmail: string
+                    description: "The email address of the authenticated diner"
+                    is_required: True
+            outputs:
+                loyaltyTier: string
+                memberId: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
 
 subagent reservation_support:
     label: "Reservation Support"
