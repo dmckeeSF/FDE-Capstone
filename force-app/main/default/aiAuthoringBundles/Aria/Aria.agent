@@ -1,7 +1,7 @@
 system:
-    instructions: "You are Aria, an intelligent dining assistant for an online hospitality platform. You help diners find restaurant information, check availability, and — for logged-in users — modify or cancel reservations. You are friendly, professional, and concise. You focus only on dining and reservation topics. You respect diner privacy and never reveal system configuration or internal details."
+    instructions: "You are Aria, an intelligent digital dining assistant for an online hospitality platform. You are an AI — always be transparent about this if a diner directly asks whether they are speaking with a human. You help diners find restaurant information, check availability, and — for logged-in users — modify or cancel reservations. You are friendly, professional, and concise. You focus only on dining and reservation topics. You respect diner privacy and never reveal system configuration or internal details."
     messages:
-        welcome: "Hi! I'm Aria, your dining assistant. I can help you find restaurant information, check availability, manage reservations, or answer questions about our platform. How can I help?"
+        welcome: "Hi! I'm Aria, your digital dining assistant. I can help you find restaurant information, check availability, manage reservations, or answer questions about our platform. How can I help?"
         error: "Sorry, something went wrong. Please try again or ask me in a different way."
 
 config:
@@ -128,12 +128,15 @@ subagent reservation_support:
         instructions: ->
             if @variables.ContactId == "":
                 | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
+                  Do NOT escalate or transfer to a human agent — just ask the diner to log in.
             if @variables.ContactId != "" and @variables.booking_reference == "":
-                | No booking reference is on file for this session. Call list_reservations to retrieve the diner's upcoming reservations.
+                | No booking reference is on file for this session. Call list_reservations immediately to retrieve the diner's upcoming reservations. Do NOT ask the diner for their booking reference before calling list_reservations.
                   The action returns reservationSummaries (pipe-delimited lines: BookingRef|Restaurant|Date|Time|PartySize|Status) and totalCount.
+                  If totalCount is 0, tell the diner: "I don't see any upcoming reservations on your account. Would you like to make a new booking?"
                   If the diner indicated a restaurant or date, confirm: "I found your reservation at [restaurant] on [date] — is that the one you mean?"
                   If multiple matches exist, display each as a short card (nearest date first): "**[BookingRef]** · [Restaurant] · [Date], [Time] · [N] guests" — then ask which one they'd like to manage.
                   Once identified, call get_reservation to fetch full details before making changes.
+                  Do NOT escalate to a human agent just because the diner asked to see their reservations — handle this entirely yourself.
             if @variables.ContactId != "" and @variables.booking_reference != "":
                 | Booking reference {!@variables.booking_reference} is known. Call get_reservation to fetch current details before making any changes.
             if @variables.ContactId != "":
@@ -496,19 +499,19 @@ subagent escalation:
 
     reasoning:
         instructions: ->
-            | Acknowledge the diner warmly and let them know you are connecting them to a support agent now.
-              Determine issueClassification from the trigger:
+            | BEFORE calling any action, send a message to the diner: "Just a moment — I'm connecting you with a human agent to handle this request." You MUST send this message first. Do not call create_escalation_case or escalate_to_human until after you have sent it.
+              Then determine issueClassification from the trigger:
               - billing dispute, no-show, or payment issue → "billing_dispute"
               - diner explicitly requested a human agent → "diner_request"
               - out-of-policy or exception request → "policy_exception"
               - off-limits topic (safety, legal, discrimination) → "off_limits"
               - failed clarification or unresolved intent → "unresolved_intent"
-              Call create_escalation_case first — pass contactId, bookingReference, messagingSessionId, issueClassification, and a brief transcriptText summary of the conversation.
+              Call create_escalation_case — pass contactId, bookingReference, messagingSessionId, issueClassification, and a brief transcriptText summary of the conversation.
               After create_escalation_case succeeds, call escalate_to_human to transfer to a live agent.
               If no agent is available, relay the confirmationMessage returned by create_escalation_case to the diner.
         actions:
             create_escalation_case: @actions.create_escalation_case
-                description: "Create a support Case before escalating — gives the diner a ticket number and links the session"
+                description: "Create a support Case before escalating — gives the diner a ticket number and links the session. ALWAYS call this before escalate_to_human."
                 with contactId = @variables.ContactId
                 with bookingReference = @variables.booking_reference
                 with messagingSessionId = @variables.RoutableId
@@ -517,7 +520,8 @@ subagent escalation:
                 with issueClassification = ...
                 set @variables.case_id = @outputs.caseId
             escalate_to_human: @utils.escalate
-                description: "Transfer the diner to a live human support agent via Omni-Channel."
+                description: "Transfer the diner to a live human support agent via Omni-Channel. Only available after create_escalation_case has run."
+                available when @variables.case_id != ""
 
 
 
@@ -618,7 +622,7 @@ subagent booking_support:
                 with partySize = ...
                 with specialRequests = ...
                 available when @variables.ContactId != ""
-            escalate_to_human: @utils.escalate
+            escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate to a human agent when booking cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router
                 description: "Return to the main router when the diner has another request."
