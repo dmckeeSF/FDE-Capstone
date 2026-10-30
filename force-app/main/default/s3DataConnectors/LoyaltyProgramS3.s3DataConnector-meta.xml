@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataConnectorS3 xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fileNameWildcard>loyalty.csv</fileNameWildcard>
+    <importFromDirectory>/</importFromDirectory>
+    <masterLabel>Loyalty Program S3</masterLabel>
+    <s3BucketName>fdecap-loyalty-data</s3BucketName>
+</DataConnectorS3>

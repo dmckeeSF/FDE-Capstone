@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<InternalDataConnector xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <alias>LoyaltyProgramS3</alias>
+    <dataConnectionStatus>Connected</dataConnectionStatus>
+    <dataConnectorType>AmazonS3</dataConnectorType>
+    <dataPlatform>Amazon_S3</dataPlatform>
+    <dataSourceTenant>LoyaltyProgramS3</dataSourceTenant>
+    <dataSpace xsi:nil="true"/>
+    <isMetadataSync>false</isMetadataSync>
+    <masterLabel>Loyalty Program S3</masterLabel>
+</InternalDataConnector>

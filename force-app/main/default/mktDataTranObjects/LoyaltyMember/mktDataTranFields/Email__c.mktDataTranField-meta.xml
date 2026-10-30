@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MktDataTranField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <creationType>External</creationType>
+    <datatype>Text</datatype>
+    <externalName>Email__c</externalName>
+    <isDataRequired>true</isDataRequired>
+    <length>255</length>
+    <masterLabel>Email</masterLabel>
+    <primaryIndexOrder>1</primaryIndexOrder>
+    <sequence>1</sequence>
+</MktDataTranField>

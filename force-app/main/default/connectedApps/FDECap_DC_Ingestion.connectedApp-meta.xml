@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>dmckee@fdecapstone.com.161026</contactEmail>
+    <label>FDECap DC Ingestion</label>
+    <oauthConfig>
+        <callbackUrl>http://localhost:1717/OauthRedirect</callbackUrl>
+        <isClientCredentialEnabled>true</isClientCredentialEnabled>
+        <scopes>CdpApi</scopes>
+        <scopes>CdpQueryApi</scopes>
+        <scopes>CdpProfileApi</scopes>
+        <scopes>Api</scopes>
+        <scopes>RefreshToken</scopes>
+    </oauthConfig>
+</ConnectedApp>

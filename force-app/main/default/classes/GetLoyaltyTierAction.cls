@@ -1,5 +1,7 @@
 public with sharing class GetLoyaltyTierAction {
 
+    private static final String DMO = 'LPR_LoyaltyMember_81F1B696__dlm';
+
     public class Request {
         @InvocableVariable(label='Contact Email' required=true)
         public String contactEmail;
@@ -21,8 +23,7 @@ public with sharing class GetLoyaltyTierAction {
 
     @InvocableMethod(
         label='Get Loyalty Tier'
-        description='Retrieves the diner loyalty tier from the external loyalty program API'
-        callout=true
+        description='Retrieves the diner loyalty tier from the Data Cloud loyalty DMO'
     )
     public static List<Response> execute(List<Request> requests) {
         List<Response> results = new List<Response>();
@@ -31,6 +32,14 @@ public with sharing class GetLoyaltyTierAction {
         }
         return results;
     }
+
+    // Populated in tests to avoid live DMO dependency
+    @TestVisible
+    private static Map<String, Map<String, String>> dmoTestData = null;
+
+    // Set true in tests to exercise the catch block
+    @TestVisible
+    private static Boolean forceException = false;
 
     private static Response lookup(Request req) {
         Response res = new Response();
@@ -43,42 +52,37 @@ public with sharing class GetLoyaltyTierAction {
         }
 
         try {
-            List<Loyalty_API_Settings__mdt> settings = [
-                SELECT API_Key__c FROM Loyalty_API_Settings__mdt
-                WHERE DeveloperName = 'Default' LIMIT 1
-            ];
-            String apiKey = settings.isEmpty() ? '' : settings[0].API_Key__c;
-
-            HttpRequest httpReq = new HttpRequest();
-            httpReq.setEndpoint('callout:Loyalty_Program_API');
-            httpReq.setMethod('GET');
-            httpReq.setTimeout(10000);
-            if (String.isNotBlank(apiKey)) {
-                httpReq.setHeader('x-api-key', apiKey);
+            if (forceException) {
+                throw new System.MathException('forced test exception');
             }
 
-            HttpResponse httpRes = new Http().send(httpReq);
-
-            if (httpRes.getStatusCode() != 200) {
-                res.errorMessage = 'Loyalty API returned HTTP ' + httpRes.getStatusCode();
-                return res;
-            }
-
-            List<Object> records = (List<Object>) JSON.deserializeUntyped(httpRes.getBody());
             String emailLower = req.contactEmail.toLowerCase().trim();
+            String tier;
+            String memberId;
 
-            for (Object obj : records) {
-                Map<String, Object> record = (Map<String, Object>) obj;
-                String recordEmail = String.valueOf(record.get('email')).toLowerCase().trim();
-                if (recordEmail == emailLower) {
-                    res.loyaltyTier = String.valueOf(record.get('tier'));
-                    res.memberId    = String.valueOf(record.get('memberId'));
-                    res.isSuccess   = true;
+            if (dmoTestData != null) {
+                if (!dmoTestData.containsKey(emailLower)) {
+                    res.errorMessage = 'Diner not found in loyalty program.';
                     return res;
                 }
+                tier     = dmoTestData.get(emailLower).get('tier');
+                memberId = dmoTestData.get(emailLower).get('memberId');
+            } else {
+                List<SObject> records = Database.query(
+                    'SELECT tier__c, member_id__c FROM ' + DMO +
+                    ' WHERE email__c = :emailLower LIMIT 1'
+                );
+                if (records.isEmpty()) {
+                    res.errorMessage = 'Diner not found in loyalty program.';
+                    return res;
+                }
+                tier     = (String) records[0].get('tier__c');
+                memberId = (String) records[0].get('member_id__c');
             }
 
-            res.errorMessage = 'Diner not found in loyalty program.';
+            res.loyaltyTier = tier;
+            res.memberId    = memberId;
+            res.isSuccess   = true;
             return res;
 
         } catch (Exception e) {

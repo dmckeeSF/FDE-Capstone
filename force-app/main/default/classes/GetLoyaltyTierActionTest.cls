@@ -1,35 +1,24 @@
 @IsTest
 private class GetLoyaltyTierActionTest {
 
-    private class LoyaltyMock implements HttpCalloutMock {
-        private Integer statusCode;
-        private String  body;
-
-        LoyaltyMock(Integer statusCode, String body) {
-            this.statusCode = statusCode;
-            this.body       = body;
-        }
-
-        public HttpResponse respond(HttpRequest req) {
-            HttpResponse res = new HttpResponse();
-            res.setStatusCode(statusCode);
-            res.setBody(body);
-            return res;
-        }
-    }
-
-    private static final String MOCK_BODY =
-        '[' +
-            '{"email":"sofia.rodriguez@example.com","tier":"Platinum","memberId":"LYL-00123"},' +
-            '{"email":"test.diner@tabletopia.com","tier":"Gold","memberId":"LYL-00456"}' +
-        ']';
+    private static final Map<String, Map<String, String>> MOCK_DATA =
+        new Map<String, Map<String, String>>{
+            'sofiarodriguez@example.com' => new Map<String, String>{
+                'tier'     => 'Platinum',
+                'memberId' => 'LYL-00123'
+            },
+            'marcusjohnson@example.com' => new Map<String, String>{
+                'tier'     => 'Gold',
+                'memberId' => 'LYL-00456'
+            }
+        };
 
     @IsTest
     static void testPlatinumTierReturned() {
-        Test.setMock(HttpCalloutMock.class, new LoyaltyMock(200, MOCK_BODY));
+        GetLoyaltyTierAction.dmoTestData = MOCK_DATA;
 
         GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
-        req.contactEmail = 'sofia.rodriguez@example.com';
+        req.contactEmail = 'sofiarodriguez@example.com';
 
         Test.startTest();
         List<GetLoyaltyTierAction.Response> results = GetLoyaltyTierAction.execute(
@@ -45,10 +34,10 @@ private class GetLoyaltyTierActionTest {
 
     @IsTest
     static void testGoldTierReturned() {
-        Test.setMock(HttpCalloutMock.class, new LoyaltyMock(200, MOCK_BODY));
+        GetLoyaltyTierAction.dmoTestData = MOCK_DATA;
 
         GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
-        req.contactEmail = 'test.diner@tabletopia.com';
+        req.contactEmail = 'marcusjohnson@example.com';
 
         Test.startTest();
         List<GetLoyaltyTierAction.Response> results = GetLoyaltyTierAction.execute(
@@ -61,8 +50,24 @@ private class GetLoyaltyTierActionTest {
     }
 
     @IsTest
+    static void testCaseInsensitiveEmailMatch() {
+        GetLoyaltyTierAction.dmoTestData = MOCK_DATA;
+
+        GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
+        req.contactEmail = 'SOFIARODRIGUEZ@EXAMPLE.COM';
+
+        Test.startTest();
+        List<GetLoyaltyTierAction.Response> results = GetLoyaltyTierAction.execute(
+            new List<GetLoyaltyTierAction.Request>{ req }
+        );
+        Test.stopTest();
+
+        System.assertEquals('Platinum', results[0].loyaltyTier, 'Email match must be case-insensitive');
+    }
+
+    @IsTest
     static void testUnknownEmailReturnsStandard() {
-        Test.setMock(HttpCalloutMock.class, new LoyaltyMock(200, MOCK_BODY));
+        GetLoyaltyTierAction.dmoTestData = new Map<String, Map<String, String>>();
 
         GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
         req.contactEmail = 'unknown@nowhere.com';
@@ -75,25 +80,6 @@ private class GetLoyaltyTierActionTest {
 
         GetLoyaltyTierAction.Response res = results[0];
         System.assertEquals('Standard', res.loyaltyTier, 'Unknown email should default to Standard');
-        System.assert(!res.isSuccess);
-        System.assert(String.isNotBlank(res.errorMessage));
-    }
-
-    @IsTest
-    static void testApiErrorReturnsStandard() {
-        Test.setMock(HttpCalloutMock.class, new LoyaltyMock(500, 'Internal Server Error'));
-
-        GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
-        req.contactEmail = 'sofia.rodriguez@example.com';
-
-        Test.startTest();
-        List<GetLoyaltyTierAction.Response> results = GetLoyaltyTierAction.execute(
-            new List<GetLoyaltyTierAction.Request>{ req }
-        );
-        Test.stopTest();
-
-        GetLoyaltyTierAction.Response res = results[0];
-        System.assertEquals('Standard', res.loyaltyTier);
         System.assert(!res.isSuccess);
         System.assert(String.isNotBlank(res.errorMessage));
     }
@@ -116,11 +102,14 @@ private class GetLoyaltyTierActionTest {
     }
 
     @IsTest
-    static void testCaseInsensitiveEmailMatch() {
-        Test.setMock(HttpCalloutMock.class, new LoyaltyMock(200, MOCK_BODY));
+    static void testLiveSoqlPathReturnsStandard() {
+        // dmoTestData = null forces the real Database.query path.
+        // In test context the DMO returns empty or throws — both yield Standard gracefully.
+        GetLoyaltyTierAction.dmoTestData   = null;
+        GetLoyaltyTierAction.forceException = false;
 
         GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
-        req.contactEmail = 'SOFIA.RODRIGUEZ@EXAMPLE.COM';
+        req.contactEmail = 'live-path-test@example.com';
 
         Test.startTest();
         List<GetLoyaltyTierAction.Response> results = GetLoyaltyTierAction.execute(
@@ -128,6 +117,27 @@ private class GetLoyaltyTierActionTest {
         );
         Test.stopTest();
 
-        System.assertEquals('Platinum', results[0].loyaltyTier, 'Email match must be case-insensitive');
+        System.assertEquals('Standard', results[0].loyaltyTier);
+        System.assert(!results[0].isSuccess);
+    }
+
+    @IsTest
+    static void testExceptionReturnsStandard() {
+        GetLoyaltyTierAction.dmoTestData  = null;
+        GetLoyaltyTierAction.forceException = true;
+
+        GetLoyaltyTierAction.Request req = new GetLoyaltyTierAction.Request();
+        req.contactEmail = 'sofia@example.com';
+
+        Test.startTest();
+        List<GetLoyaltyTierAction.Response> results = GetLoyaltyTierAction.execute(
+            new List<GetLoyaltyTierAction.Request>{ req }
+        );
+        Test.stopTest();
+
+        GetLoyaltyTierAction.Response res = results[0];
+        System.assertEquals('Standard', res.loyaltyTier);
+        System.assert(!res.isSuccess);
+        System.assert(String.isNotBlank(res.errorMessage));
     }
 }

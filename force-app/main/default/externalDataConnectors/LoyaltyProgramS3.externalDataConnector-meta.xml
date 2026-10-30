@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalDataConnector xmlns="http://soap.sforce.com/2006/04/metadata">
+    <developerName>LoyaltyProgramS3</developerName>
+    <dataConnectionStatus>Connected</dataConnectionStatus>
+    <dataConnectorConfiguration>LoyaltyProgramS3</dataConnectorConfiguration>
+    <dataConnectorType>AmazonS3</dataConnectorType>
+    <masterLabel>Loyalty Program S3</masterLabel>
+</ExternalDataConnector>

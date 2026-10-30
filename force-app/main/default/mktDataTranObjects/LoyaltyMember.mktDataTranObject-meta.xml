@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MktDataTranObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <connector>LoyaltyProgramS3</connector>
+    <creationType>External</creationType>
+    <dataSource>LoyaltyProgramS3</dataSource>
+    <dataSourceObject>loyalty</dataSourceObject>
+    <masterLabel>Loyalty Member</masterLabel>
+    <mktDataTranFields>
+        <fullName>Email__c</fullName>
+        <creationType>External</creationType>
+        <datatype>E</datatype>
+        <externalName>Email__c</externalName>
+        <isDataRequired>true</isDataRequired>
+        <length>0</length>
+        <masterLabel>Email</masterLabel>
+        <precision>0</precision>
+        <primaryIndexOrder>1</primaryIndexOrder>
+        <scale>0</scale>
+        <sequence>1</sequence>
+    </mktDataTranFields>
+    <mktDataTranFields>
+        <fullName>Tier__c</fullName>
+        <creationType>External</creationType>
+        <datatype>S</datatype>
+        <externalName>Tier__c</externalName>
+        <isDataRequired>false</isDataRequired>
+        <length>0</length>
+        <masterLabel>Tier</masterLabel>
+        <precision>0</precision>
+        <primaryIndexOrder>0</primaryIndexOrder>
+        <scale>0</scale>
+        <sequence>2</sequence>
+    </mktDataTranFields>
+    <mktDataTranFields>
+        <fullName>MemberId__c</fullName>
+        <creationType>External</creationType>
+        <datatype>S</datatype>
+        <externalName>MemberId__c</externalName>
+        <isDataRequired>false</isDataRequired>
+        <length>0</length>
+        <masterLabel>Member ID</masterLabel>
+        <precision>0</precision>
+        <primaryIndexOrder>0</primaryIndexOrder>
+        <scale>0</scale>
+        <sequence>3</sequence>
+    </mktDataTranFields>
+    <objectCategory>Salesforce_SFDCReferenceModel_0_93.Profile</objectCategory>
+</MktDataTranObject>

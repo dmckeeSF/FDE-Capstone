@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataStreamDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <areHeadersIncludedInFile>true</areHeadersIncludedInFile>
+    <dataConnector>LoyaltyProgramS3</dataConnector>
+    <dataConnectorType>AwsS3</dataConnectorType>
+    <dataExtractMethods>FULL_REFRESH</dataExtractMethods>
+    <dataSource>LoyaltyProgramS3</dataSource>
+<description>Loyalty member tier data ingested from external S3 loyalty program</description>
+    <masterLabel>Loyalty Member</masterLabel>
+    <mktDataLakeObject>LoyaltyMember</mktDataLakeObject>
+    <mktDataTranObject>LoyaltyMember</mktDataTranObject>
+</DataStreamDefinition>

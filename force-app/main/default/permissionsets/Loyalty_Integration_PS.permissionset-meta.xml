@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Minimal permissions for the Loyalty Integration service account used by the FDECap_Loyalty_Ingest Connected App Client Credentials Flow.</description>
+    <label>Loyalty Integration</label>
+<userPermissions>
+        <enabled>true</enabled>
+        <name>ApiEnabled</name>
+    </userPermissions>
+</PermissionSet>

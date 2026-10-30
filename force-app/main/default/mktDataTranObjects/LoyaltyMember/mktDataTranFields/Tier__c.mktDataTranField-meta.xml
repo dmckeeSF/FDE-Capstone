@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MktDataTranField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <creationType>External</creationType>
+    <datatype>Text</datatype>
+    <externalName>Tier__c</externalName>
+    <isDataRequired>false</isDataRequired>
+    <length>100</length>
+    <masterLabel>Tier</masterLabel>
+    <sequence>2</sequence>
+</MktDataTranField>

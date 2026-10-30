@@ -4,7 +4,7 @@
     <externalId>false</externalId>
     <formula>IF(ISBLANK(Restaurant__r.Dining_Time_Zone__c),
   TEXT(Reservation_Time__c),
-  TEXT(Reservation_Time__c) &amp; " (" &amp; Restaurant__r.Dining_Time_Zone__c &amp; ")"
+  TEXT(Reservation_Time__c) &amp; &quot; (&quot; &amp; Restaurant__r.Dining_Time_Zone__c &amp; &quot;)&quot;
 )</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Reservation Time (Local)</label>

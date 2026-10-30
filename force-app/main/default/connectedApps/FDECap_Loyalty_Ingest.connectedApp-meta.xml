@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>dmckee@fdecapstone.com.161026</contactEmail>
+    <label>FDECap Loyalty Ingest</label>
+    <oauthConfig>
+        <callbackUrl>http://localhost:1717/OauthRedirect</callbackUrl>
+        <consumerKey>3MVG97Tt9.zIfTDtaW31VT1zT0DDzboInX36f7WCiIJ7Hi2X0Cyw6pQSNioXHW64cIyVnsjF34LLbhhvMbJZm</consumerKey>
+        <isAdminApproved>false</isAdminApproved>
+        <isClientCredentialEnabled>true</isClientCredentialEnabled>
+        <isCodeCredentialEnabled>false</isCodeCredentialEnabled>
+        <isCodeCredentialPostOnly>false</isCodeCredentialPostOnly>
+        <isConsumerSecretOptional>true</isConsumerSecretOptional>
+        <isIntrospectAllTokens>false</isIntrospectAllTokens>
+        <isNamedUserJwtEnabled>false</isNamedUserJwtEnabled>
+        <isPkceRequired>true</isPkceRequired>
+        <isRefreshTokenRotationEnabled>true</isRefreshTokenRotationEnabled>
+        <isSecretRequiredForRefreshToken>false</isSecretRequiredForRefreshToken>
+        <isSecretRequiredForTokenExchange>false</isSecretRequiredForTokenExchange>
+        <isTokenExchangeEnabled>false</isTokenExchangeEnabled>
+        <scopes>Api</scopes>
+        <scopes>RefreshToken</scopes>
+        <certificate>MIIDZzCCAk+gAwIBAgIUNWoqlruSThyqARQdzfZjKJgMZncwDQYJKoZIhvcNAQEL
+BQAwQzEeMBwGA1UEAwwVRkRFQ2FwLUxveWFsdHktSW5nZXN0MRQwEgYDVQQKDAtG
+REVDYXBzdG9uZTELMAkGA1UEBhMCVVMwHhcNMjYxMDI5MTkyODQ4WhcNMzYxMDI2
+MTkyODQ4WjBDMR4wHAYDVQQDDBVGREVDYXAtTG95YWx0eS1Jbmdlc3QxFDASBgNV
+BAoMC0ZERUNhcHN0b25lMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQAD
+ggEPADCCAQoCggEBAM5LQNGV6otTlZ3OuAk6nQW074HOxC4kgRW3jV2jSZApf6qp
+CNqyT8ONrb5D7++PQfQwCaAJlfmS2wcbXsZw5+ayCRA8+1vBwrnEIaFsbE0fUKUs
+3toEnCT+J1coJJt80h7uaYNMEUh1NXJfQAALdirAY0leEpWI8QIyxkbXAz7v73my
+BJqMrlWlvmxJiiQgKHov8UpBmV+JG7Utw5HkKMqy2FS/L76QmaglXTjVdAObNnVO
+GyBxgCqWrnZWjk7Gf+5wlF2nT0Lc0fl6yJ4tWurB1DA4U3hJgN5YmreI7iCwujGi
+OIzBg7yU8/nYR2MQta1/vKF8Or+1NO82aEAU9aECAwEAAaNTMFEwHQYDVR0OBBYE
+FG9LdTtE2R6UVReyMnV8FDBkNQd0MB8GA1UdIwQYMBaAFG9LdTtE2R6UVReyMnV8
+FDBkNQd0MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAEXYwdRj
+HV2pp8TPFw2Z5F5gHypo0miPh9ZSCPWafZQ0eQxzb3DdSAmOOfGAW9dH+AngJ6zJ
+zOQPfeCq8kXPhhlTd+Z15IO19mGlvSdZ8HaX+bzyio9VzsuTCiBYlS5fysrOpT7y
+gILtgHh6E3qGCUED6AeA39E51hj0hWOKuRbc0qM4ys5owsfIKeReCADVovk+qPIN
+SrnY2Qi+FYQzdWLtoAhVC25OeoCaoSVJmo4rzHppKh7e0UBI9x1oMEOhPPYSJWYj
+XXQIoMIdI/PD7g359LzUvyyQy8x1C10kS3/c5SAJtSGPzt0c8HkQY3CGFIPYxAF1
+nk14lewhriyClQY=</certificate>
+    </oauthConfig>
+    <oauthPolicy>
+        <ipRelaxation>ENFORCE</ipRelaxation>
+        <isTokenExchangeFlowEnabled>false</isTokenExchangeFlowEnabled>
+<refreshTokenPolicy>infinite</refreshTokenPolicy>
+    </oauthPolicy>
+</ConnectedApp>
