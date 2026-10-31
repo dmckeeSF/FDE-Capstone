@@ -12,17 +12,6 @@
         <response>Text STOP to opt out of further messages.</response>
         <type>HelpResponse</type>
     </automatedResponses>
-    <embeddedConfig>
-        <allowedFileTypes>bmp,csv,doc,docx,gif,jpg,pdf,png,tiff,txt,xls,xlsx,xml</allowedFileTypes>
-        <anonymousUserJwtExpirationTime>360</anonymousUserJwtExpirationTime>
-        <authMode>UnAuth</authMode>
-        <isAgentAvlCheckEnabled>false</isAgentAvlCheckEnabled>
-        <isAttachmentUploadEnabled>false</isAttachmentUploadEnabled>
-        <isEstimatedWaitTimeEnabled>false</isEstimatedWaitTimeEnabled>
-        <isFallbackMessageEnabled>false</isFallbackMessageEnabled>
-        <isSaveTranscriptEnabled>false</isSaveTranscriptEnabled>
-        <maxFileSize>5</maxFileSize>
-    </embeddedConfig>
     <masterLabel>Table Topper Channel</masterLabel>
     <messagingChannelType>EmbeddedMessaging</messagingChannelType>
     <messagingKeywords>
