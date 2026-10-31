@@ -40,7 +40,20 @@
     "id" : "0f37a8c9-63ba-4b7d-90b8-98d662bad2ee",
     "label" : "Default",
     "regions" : [ {
-      "components" : [ ],
+      "components" : [ {
+        "componentAttributes" : {
+          "clientVersion" : "WebV1",
+          "deploymentName" : "Table_Topper_Channel",
+          "hideChatButtonOnLoad" : "Visible",
+          "isExpSiteAuthMode" : false,
+          "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
+          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWTableTopperC1792604109439"
+        },
+        "componentName" : "experience_messaging:embeddedMessaging",
+        "id" : "01a057cd-2cf1-4979-825e-7fe2d3e088ec",
+        "renditionMap" : { },
+        "type" : "component"
+      } ],
       "id" : "77d4f2b6-3d70-4314-b864-642525cac709",
       "regionName" : "customHeader",
       "type" : "region"
@@ -130,20 +143,14 @@
       "components" : [ {
         "componentAttributes" : {
           "clientVersion" : "WebV1",
-          "deploymentName" : "Table_Topper_Channel",
+          "deploymentName" : "Aria_Chat",
           "hideChatButtonOnLoad" : "Default",
           "isExpSiteAuthMode" : true,
           "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
-          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWTableTopperC1792604109439"
+          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/dining/s"
         },
         "componentName" : "experience_messaging:embeddedMessaging",
         "id" : "0aee34d5-ace7-46d9-be0f-f316694eab92",
-        "renditionMap" : { },
-        "type" : "component"
-      }, {
-        "componentAttributes" : { },
-        "componentName" : "c:ariaIdentityInjector",
-        "id" : "b2c1d4e5-f6a7-48b9-c0d1-e2f3a4b5c6d7",
         "renditionMap" : { },
         "type" : "component"
       } ],
