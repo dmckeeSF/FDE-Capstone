@@ -621,15 +621,23 @@ subagent booking_support:
                 | To book a reservation I'll need you to be signed in. Please log in to the portal and come back — I'll be here when you're ready.
             if @variables.ContactId != "":
                 | Help the diner book a new reservation. The diner is already identified — do NOT ask for their name, email, phone, or any personal information.
-                  Collect: restaurant name, desired date, desired time, party size. Special requests are optional.
-                  Confirm all details before calling create_reservation: "I'll book a table for [N] at [Restaurant] on [Date] at [Time]. Shall I go ahead?"
-                  After create_reservation succeeds: (1) state the booking reference: "Your booking reference is [ref]." (2) summarise restaurant, date, time, party size, and any special requests. (3) tell the diner: "A confirmation email has been sent to your email address on file."
+                  STEP 1 — Identify the restaurant:
+                  - If the diner has already named a specific restaurant: proceed to Step 2.
+                  - If the diner mentions a city but no specific restaurant (e.g. "in Seattle", "somewhere in Bellevue"): immediately call get_restaurants_by_location with that city. Do NOT ask clarifying questions first. Present the results as short option cards (bold name, cuisine, price) and ask: "Which of these would you like to book?"
+                  - If no city is mentioned either: ask ONE question — "What city are you looking to dine in?"
+                  STEP 2 — Collect remaining booking details: desired date, desired time, party size. Special requests are optional. Ask for only what is still missing — do not re-ask for information already provided.
+                  STEP 3 — Confirm: "I'll book a table for [N] at [Restaurant] on [Date] at [Time]. Shall I go ahead?"
+                  STEP 4 — Call create_reservation. After it succeeds: (1) state the booking reference: "Your booking reference is [ref]." (2) summarise restaurant, date, time, party size, and any special requests. (3) "A confirmation email has been sent to your email address on file."
                   If isSuccess is false, explain the error and offer to try again or escalate.
                   If you cannot complete the booking, escalate to a human agent.
                   After completing the task, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
         actions:
+            get_restaurants_by_location: @actions.get_restaurants_by_location
+                description: "CALL THIS FIRST when the diner names a city but no specific restaurant — returns all TableTopia restaurants in that city to help the diner choose."
+                with city = ...
+                with state = ...
             create_reservation: @actions.create_reservation
-                description: "Create a new confirmed reservation for the authenticated diner"
+                description: "Create a new confirmed reservation for the authenticated diner — only after restaurant, date, time, and party size are all confirmed."
                 with contactId = @variables.ContactId
                 with restaurantName = ...
                 with reservationDate = ...
@@ -646,6 +654,24 @@ subagent booking_support:
 
 
     actions:
+        get_restaurants_by_location:
+            description: "Returns all active TableTopia restaurants in a given city"
+            target: "apex://GetRestaurantsByLocationAction"
+            inputs:
+                city: string
+                    description: "City name to search, e.g. 'Seattle' or 'Bellevue'"
+                    is_required: True
+                state: string
+                    description: "Optional state abbreviation, e.g. 'WA'"
+            outputs:
+                restaurantList: string
+                restaurantCount: object
+                    complex_data_type_name: "lightning__integerType"
+                citySearched: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
+
         create_reservation:
             description: "Create a new Reservation__c record for the authenticated diner"
             target: "apex://CreateReservationAction"
