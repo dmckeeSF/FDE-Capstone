@@ -15,7 +15,7 @@
     <embeddedConfig>
         <allowedFileTypes>bmp,csv,doc,docx,gif,jpg,pdf,png,tiff,txt,xls,xlsx,xml</allowedFileTypes>
         <anonymousUserJwtExpirationTime>360</anonymousUserJwtExpirationTime>
-        <authMode>UnAuth</authMode>
+        <authMode>Auth</authMode>
         <isAgentAvlCheckEnabled>false</isAgentAvlCheckEnabled>
         <isAttachmentUploadEnabled>true</isAttachmentUploadEnabled>
         <isEstimatedWaitTimeEnabled>false</isEstimatedWaitTimeEnabled>
