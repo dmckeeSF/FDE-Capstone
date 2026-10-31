@@ -38,6 +38,8 @@ variables:
         description: "The authenticated diner's loyalty tier — populated at session start by get_loyalty_tier from external loyalty program API"
     contact_email: mutable string = ""
         description: "The authenticated diner's email address — populated by get_contact_profile and used for external loyalty lookup"
+    profile_loaded: mutable boolean = False
+        description: "True only when get_contact_profile found a Contact record with a non-blank email — used as a null-safe gate before calling get_loyalty_tier"
 
 language:
     default_locale: "en_US"
@@ -54,6 +56,8 @@ start_agent agent_router:
                 run @actions.get_contact_profile
                     with contactId = @variables.ContactId
                     set @variables.contact_email = @outputs.email
+                    set @variables.profile_loaded = @outputs.profileFound
+            if @variables.profile_loaded == True:
                 run @actions.get_loyalty_tier
                     with contactEmail = @variables.contact_email
                     set @variables.loyalty_tier = @outputs.loyaltyTier
@@ -105,6 +109,8 @@ start_agent agent_router:
                 lastName: string
                 loyaltyTier: string
                 email: string
+                profileFound: object
+                    complex_data_type_name: "lightning__booleanType"
 
         get_loyalty_tier:
             description: "Retrieve the diner's loyalty tier from the external loyalty program API (outside Salesforce)"

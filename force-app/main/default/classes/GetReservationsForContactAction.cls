@@ -11,13 +11,24 @@ public without sharing class GetReservationsForContactAction {
                 results.add(empty);
                 continue;
             }
+            // Experience Cloud person account sites pass Account ID (001...) via
+            // @MessagingEndUser.ContactId; resolve to Contact ID first in that case.
+            String resolvedContactId = req.contactId;
+            if (req.contactId.left(3) == '001') {
+                List<Contact> personContacts = [
+                    SELECT Id FROM Contact WHERE AccountId = :req.contactId LIMIT 1
+                ];
+                if (!personContacts.isEmpty()) {
+                    resolvedContactId = personContacts[0].Id;
+                }
+            }
             List<Reservation__c> reservations = [
                 SELECT Booking_Reference__c, Restaurant__r.Name,
                        Reservation_Date__c, Reservation_Time__c,
                        Party_Size__c, Status__c
                 FROM Reservation__c
-                WHERE Diner__c   = :req.contactId
-                  AND Status__c IN ('Confirmed', 'Pending')
+                WHERE Diner__c   = :resolvedContactId
+                  AND Status__c IN ('Confirmed', 'Modified')
                 ORDER BY Reservation_Date__c ASC
                 LIMIT 50
             ];

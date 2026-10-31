@@ -14,12 +14,25 @@ public without sharing class GetContactProfileAction {
                 results.add(dto);
                 continue;
             }
-            List<Contact> contacts = [
-                SELECT FirstName, LastName, Loyalty_Tier__c, Email
-                FROM Contact
-                WHERE Id = :req.contactId
-                LIMIT 1
-            ];
+            // Experience Cloud person account sites pass Account ID (001...) via
+            // @MessagingEndUser.ContactId; fall back to AccountId lookup in that case.
+            String idPrefix = req.contactId.left(3);
+            List<Contact> contacts;
+            if (idPrefix == '001') {
+                contacts = [
+                    SELECT FirstName, LastName, Loyalty_Tier__c, Email
+                    FROM Contact
+                    WHERE AccountId = :req.contactId
+                    LIMIT 1
+                ];
+            } else {
+                contacts = [
+                    SELECT FirstName, LastName, Loyalty_Tier__c, Email
+                    FROM Contact
+                    WHERE Id = :req.contactId
+                    LIMIT 1
+                ];
+            }
             if (!contacts.isEmpty()) {
                 Contact c = contacts[0];
                 dto.firstName    = c.FirstName != null  ? c.FirstName  : '';

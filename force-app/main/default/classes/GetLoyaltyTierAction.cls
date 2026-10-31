@@ -1,9 +1,9 @@
-public with sharing class GetLoyaltyTierAction {
+public without sharing class GetLoyaltyTierAction {
 
     private static final String DMO = 'LPR_LoyaltyMember_81F1B696__dlm';
 
     public class Request {
-        @InvocableVariable(label='Contact Email' required=true)
+        @InvocableVariable(label='Contact Email' required=false)
         public String contactEmail;
     }
 
