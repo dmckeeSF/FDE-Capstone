@@ -1,4 +1,4 @@
-public without sharing class SearchKnowledgeAction {
+public with sharing class SearchKnowledgeAction {
 
     public class SearchRequest {
         @InvocableVariable(label='Search Query' description='The search query from the diner' required=true)

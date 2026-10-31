@@ -40,6 +40,8 @@ variables:
         description: "The authenticated diner's email address — populated by get_contact_profile and used for external loyalty lookup"
     first_name: mutable string = ""
         description: "The authenticated diner's first name — populated at session start by get_contact_profile"
+    profile_loaded: mutable boolean = False
+        description: "True only when get_contact_profile found a Contact record with a non-blank email — used as a null-safe gate before calling get_loyalty_tier"
 
 language:
     default_locale: "en_US"
@@ -57,6 +59,8 @@ start_agent agent_router:
                     with contactId = @variables.ContactId
                     set @variables.contact_email = @outputs.email
                     set @variables.first_name = @outputs.firstName
+                    set @variables.profile_loaded = @outputs.profileFound
+            if @variables.profile_loaded == True:
                 run @actions.get_loyalty_tier
                     with contactEmail = @variables.contact_email
                     set @variables.loyalty_tier = @outputs.loyaltyTier
@@ -108,6 +112,8 @@ start_agent agent_router:
                 lastName: string
                 loyaltyTier: string
                 email: string
+                profileFound: object
+                    complex_data_type_name: "lightning__booleanType"
 
         get_loyalty_tier:
             description: "Retrieve the diner's loyalty tier from the external loyalty program API (outside Salesforce)"
@@ -130,7 +136,10 @@ subagent reservation_support:
     reasoning:
         instructions: ->
             if @variables.ContactId != "" and @variables.first_name != "":
-                | Greet the diner by first name: "Hi {!@variables.first_name}!" — do this exactly once at the start of your first response in this subagent.
+                | The diner's name is: {!@variables.first_name}
+                  If that value is a real person's name (not blank, not "None", not "null"), greet them: "Hi {!@variables.first_name}!"
+                  Otherwise greet them generically: "Hi there!"
+                  Do this exactly once at the start of your first response in this subagent.
             if @variables.ContactId == "":
                 | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
                   Do NOT escalate or transfer to a human agent — just ask the diner to log in.
@@ -321,20 +330,17 @@ subagent restaurant_info:
             | Help the diner find restaurant information or discover restaurants on the TableTopia platform.
               No login required for this topic.
 
-              If the diner names a specific restaurant: call get_restaurant_info and present the details
+              DECISION TREE — choose your first action based on what the diner said:
+              1. Message contains a city OR a city + cuisine (e.g. "Italian in Seattle", "restaurants in Bellevue", "what do you have in Portland") → call get_restaurants_by_location IMMEDIATELY with that city. Do NOT call get_restaurant_info for these.
+              2. Message contains only a cuisine type / dietary need / price range, no city (e.g. "Italian food", "vegetarian options", "cheap eats") → call search_knowledge with "restaurant guide [preference]".
+              3. Message names a SPECIFIC restaurant by its proper name (e.g. "La Cucina Italiana", "The Bellevue Table") → call get_restaurant_info with that name.
+              4. No location, cuisine, or name at all → ask ONE question: "Are you looking for a particular city, cuisine, or dining style?" then use the answer.
+
+              CRITICAL: A query like "Italian restaurants in Seattle" matches rule 1, NOT rule 3. "Italian" is a cuisine type, not a restaurant name. Always call get_restaurants_by_location for any query that mentions a city.
+
+              If the diner names a specific restaurant (rule 3): call get_restaurant_info and present the details
               (Name, Cuisine_Type__c, Operating_Hours__c, Price_Range__c, Dress_Code__c,
               Accessibility_Info__c, Max_Party_Size__c) directly in your response.
-
-              If the diner is browsing or asking for suggestions (e.g. "top restaurants", "what do you
-              have", "restaurants near me", "something in Bellevue", "restaurants in [city]"):
-              DO NOT ask for a specific restaurant name. Instead, act immediately:
-              - If the diner mentioned a city or area: call get_restaurants_by_location with that city.
-                This queries Account records by ShippingCity and returns every active TableTopia
-                restaurant in that city — do not use search_knowledge for city-based discovery.
-              - If the diner mentioned a cuisine type, price range, dietary need, or other non-location
-                preference: call search_knowledge with "restaurant guide [preference]"
-              - If there is truly no location or preference at all: ask ONE question —
-                "Are you looking for a particular city, cuisine, or dining style?" — then search.
               CRITICAL: You MUST call get_restaurants_by_location, search_knowledge, or get_restaurant_info before naming any restaurant in your response. If you have not called one of these actions yet, call it now — do not write any restaurant name, cuisine, or detail from memory.
               Only present restaurants that appear in the action results. NEVER name a restaurant from general knowledge or training data. If a restaurant is not in the results, it does not exist on this platform.
               If get_restaurants_by_location returns restaurantCount = 0, say "I didn't find any TableTopia restaurants in [city]." and offer to search by cuisine or suggest a nearby city.
@@ -351,13 +357,15 @@ subagent restaurant_info:
               If no information is found after searching, apologize and offer to help with something else or connect with a human agent.
               After answering, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
         actions:
-            get_restaurant_info: @actions.get_restaurant_info
-                description: "REQUIRED: Call this action immediately when the diner mentions a specific restaurant name. Do not provide any restaurant details without first calling this action."
-                with restaurantNames = ...
             get_restaurants_by_location: @actions.get_restaurants_by_location
-                description: "REQUIRED for city/area discovery: Call this action when the diner asks about restaurants in a specific city or area. Queries Account ShippingCity — returns all active restaurants in that city. Do NOT use search_knowledge for city-based queries."
+                description: "CALL THIS FIRST for any query that includes a city, neighborhood, or area — including cuisine+city combinations like 'Italian in Seattle' or 'best restaurants in Bellevue'. Do NOT call get_restaurant_info for these queries."
                 with city = ...
                 with state = ...
+                set @variables.restaurant_name_context = @outputs.restaurantList
+            get_restaurant_info: @actions.get_restaurant_info
+                description: "Call ONLY when the diner names a specific restaurant by its proper name (e.g. 'La Cucina', 'The Bellevue Table'). NEVER call for city, area, state, or cuisine-type queries."
+                with restaurantNames = ...
+                available when @variables.restaurant_name_context != ""
             search_knowledge: @actions.search_knowledge
                 description: "Call this action for cuisine type, preference, dietary, or non-location browsing queries. Also use for follow-up detail requests about a specific restaurant. Use queries like 'restaurant guide Italian' or 'restaurant guide vegetarian'."
                 with searchQuery = ...
@@ -462,22 +470,24 @@ subagent platform_faq:
     reasoning:
         instructions: ->
             | Answer the diner's general question about platform policies, booking procedures, or cancellation rules.
-              Step 1 — ALWAYS call search_knowledge before composing any response. This is mandatory for every request in this subagent, no exceptions.
-              Step 2 — Present the article content directly in your text response. Do NOT use show_command.
+              MANDATORY: Your very first action MUST be search_knowledge. Do not compose any response, do not call go_to_agent_router, do not escalate — call search_knowledge FIRST, every single time.
+              Step 1 — Call search_knowledge immediately with a query derived from the diner's question.
+              Step 2 — Read the article content returned and compose your answer from it. Present it directly in your response.
               Step 3 — After answering, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
               Data categories in scope: Cancellation Policy, Booking FAQ, Accessibility, Restaurant Policies.
-              ESCALATION RULE: Do NOT use escalate_to_human unless (a) the diner explicitly says they want to speak with a human, OR (b) you have completed Step 1 and the search returned no matching article. Escalating before calling search_knowledge is a critical error.
-              NEVER answer policy questions from memory. If you have not called search_knowledge yet, call it now before doing anything else.
+              ESCALATION RULE: Do NOT use escalate_to_human unless (a) the diner explicitly says they want to speak with a human, OR (b) you have called search_knowledge and it returned no matching article.
+              FORBIDDEN: Do not call go_to_agent_router as your first action. If you are about to call go_to_agent_router without having called search_knowledge first, stop and call search_knowledge instead.
+              NEVER answer policy questions from memory.
               Do NOT answer questions outside the scope of dining platform policies.
         actions:
             search_knowledge: @actions.search_knowledge
-                description: "REQUIRED: Call this action first for every policy or FAQ question before responding."
+                description: "STEP 1 — MANDATORY FIRST ACTION. Call this immediately every time you enter this subagent. You MUST call search_knowledge before composing any response text. Do not call go_to_agent_router or any other action first."
                 with searchQuery = ...
                 with dataCategory = ...
             escalate_to_human: @utils.transition to @subagent.escalation
-                description: "Use ONLY when the diner explicitly requests a human agent, or after search_knowledge confirms no article addresses their question."
+                description: "STEP 3 — Only after search_knowledge returned no results AND the diner still needs help."
             go_to_agent_router: @utils.transition to @subagent.agent_router
-                description: "Return to the main router when the diner has another request."
+                description: "STEP 3 — Only after search_knowledge has returned results AND you have composed your answer. Never call before search_knowledge."
 
 
 

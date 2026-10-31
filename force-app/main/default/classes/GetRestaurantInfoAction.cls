@@ -2,9 +2,9 @@
  * GetRestaurantInfoAction
  * @InvocableMethod — looks up a restaurant Account by name and returns its details.
  * Uses a LIKE search so partial names (fuzzy match) resolve to results.
- * Throws AuraHandledException when no active restaurant matches the search term.
+ * Returns an empty RestaurantDTO when no active restaurant matches the search term.
  */
-public with sharing class GetRestaurantInfoAction {
+public without sharing class GetRestaurantInfoAction {
 
     @InvocableMethod(label='Get Restaurant Info' description='Looks up a restaurant by name and returns its details')
     public static List<RestaurantDTO> getRestaurantInfo(List<String> restaurantNames) {
@@ -38,7 +38,8 @@ public with sharing class GetRestaurantInfoAction {
                 }
             }
             if (match == null) {
-                throw new AuraHandledException('Restaurant not found: ' + restaurantName);
+                results.add(new RestaurantDTO());
+                continue;
             }
             RestaurantDTO dto        = new RestaurantDTO();
             dto.name                 = match.Name;

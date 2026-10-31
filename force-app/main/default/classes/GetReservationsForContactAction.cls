@@ -5,7 +5,11 @@ public without sharing class GetReservationsForContactAction {
         List<ReservationListDTO> results = new List<ReservationListDTO>();
         for (ReservationListRequest req : requests) {
             if (String.isBlank(req.contactId)) {
-                throw new AuraHandledException('Contact ID is required.');
+                ReservationListDTO empty = new ReservationListDTO();
+                empty.totalCount = 0;
+                empty.reservationSummaries = '';
+                results.add(empty);
+                continue;
             }
             List<Reservation__c> reservations = [
                 SELECT Booking_Reference__c, Restaurant__r.Name,
@@ -37,7 +41,7 @@ public without sharing class GetReservationsForContactAction {
     }
 
     public class ReservationListRequest {
-        @InvocableVariable(required=true label='Contact Id') public String contactId;
+        @InvocableVariable(required=false label='Contact Id') public String contactId;
     }
 
     public class ReservationListDTO {

@@ -1,0 +1,14 @@
+{
+  "required" : [ "restaurantNames" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "restaurantNames" : {
+      "title" : "Restaurant Names",
+      "description" : "The name of the restaurant to look up",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
