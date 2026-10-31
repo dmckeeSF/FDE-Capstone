@@ -3,46 +3,25 @@
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <name>Set_Authenticated_Fields</name>
-        <label>Set Authenticated Context Fields</label>
-        <locationX>1232</locationX>
+        <name>Set_EndUserContactId</name>
+        <label>Set Session EndUserContactId</label>
+        <locationX>968</locationX>
         <locationY>134</locationY>
         <assignmentItems>
-            <assignToReference>$Record.ContactId__c</assignToReference>
+            <assignToReference>$Record.EndUserContactId</assignToReference>
             <operator>Assign</operator>
             <value>
                 <elementReference>ContactRecord_Id</elementReference>
             </value>
         </assignmentItems>
-        <assignmentItems>
-            <assignToReference>$Record.MembershipNumber__c</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>ContactRecord_MembershipNumber</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>$Record.IsAuthenticated__c</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>$Record.LoyaltyTier__c</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>ContactRecord_LoyaltyTier</elementReference>
-            </value>
-        </assignmentItems>
     </assignments>
     <assignments>
         <name>Set_Not_Authenticated</name>
-        <label>Set Not Authenticated</label>
+        <label>Set Not Authenticated (no-op)</label>
         <locationX>176</locationX>
-        <locationY>620</locationY>
+        <locationY>500</locationY>
         <assignmentItems>
-            <assignToReference>$Record.IsAuthenticated__c</assignToReference>
+            <assignToReference>Noop_Flag</assignToReference>
             <operator>Assign</operator>
             <value>
                 <booleanValue>false</booleanValue>
@@ -52,7 +31,7 @@
     <decisions>
         <name>Check_Contact_Found</name>
         <label>Contact Found?</label>
-        <locationX>968</locationX>
+        <locationX>704</locationX>
         <locationY>134</locationY>
         <defaultConnector>
             <targetReference>Set_Not_Authenticated</targetReference>
@@ -69,22 +48,22 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Set_Authenticated_Fields</targetReference>
+                <targetReference>Set_EndUserContactId</targetReference>
             </connector>
             <label>Contact Found</label>
         </rules>
     </decisions>
     <decisions>
         <name>Check_EndUser_Has_AuthUser</name>
-        <label>End User Has Authenticated User ID?</label>
+        <label>Has AuthenticatedEndUserId?</label>
         <locationX>440</locationX>
         <locationY>134</locationY>
         <defaultConnector>
-            <targetReference>Check_EndUser_Has_Contact</targetReference>
+            <targetReference>Set_Not_Authenticated</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>No Auth User ID — try direct ContactId</defaultConnectorLabel>
+        <defaultConnectorLabel>No Authenticated User</defaultConnectorLabel>
         <rules>
-            <name>EndUser_Has_AuthUser</name>
+            <name>Has_Auth_User</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>EndUser_AuthUserId</leftValueReference>
@@ -96,37 +75,12 @@
             <connector>
                 <targetReference>Get_User_By_AuthId</targetReference>
             </connector>
-            <label>Has Authenticated User ID</label>
-        </rules>
-    </decisions>
-    <decisions>
-        <name>Check_EndUser_Has_Contact</name>
-        <label>End User Has Direct ContactId?</label>
-        <locationX>704</locationX>
-        <locationY>134</locationY>
-        <defaultConnector>
-            <targetReference>Set_Not_Authenticated</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>No Contact on End User</defaultConnectorLabel>
-        <rules>
-            <name>EndUser_Has_Contact</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>EndUser_ContactId</leftValueReference>
-                <operator>IsNull</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Get_Contact_Record</targetReference>
-            </connector>
-            <label>End User Has Contact</label>
+            <label>Has Authenticated User</label>
         </rules>
     </decisions>
     <decisions>
         <name>Check_EndUser_Present</name>
-        <label>Messaging End User ID Present?</label>
+        <label>MessagingEndUserId Present?</label>
         <locationX>176</locationX>
         <locationY>134</locationY>
         <defaultConnector>
@@ -149,7 +103,7 @@
             <label>Has End User ID</label>
         </rules>
     </decisions>
-    <description>Maps Experience Cloud session data to MessagingSession custom context fields when a new MessagingSession is created. Primary path: MessagingEndUser.AuthenticatedEndUserId -&gt; User.ContactId (for isExpSiteAuthMode EC sessions). Fallback: MessagingEndUser.ContactId for manually-linked end users.</description>
+    <description>Maps authenticated EC user identity to MessagingSession.EndUserContactId on session create. Resolves: MessagingEndUser.AuthenticatedEndUserId → User.ContactId → Contact. This populates @MessagingEndUser.ContactId for the Aria agent.</description>
     <label>Aria Context Variable Mapping</label>
     <processMetadataValues>
         <name>BuilderType</name>
@@ -159,8 +113,8 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <name>Get_Contact_Record</name>
-        <label>Get Contact Record</label>
+        <name>Get_Contact_By_Auth_User</name>
+        <label>Get Contact Fields</label>
         <locationX>704</locationX>
         <locationY>260</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
@@ -182,14 +136,6 @@
         <outputAssignments>
             <assignToReference>ContactRecord_Id</assignToReference>
             <field>Id</field>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>ContactRecord_LoyaltyTier</assignToReference>
-            <field>Loyalty_Tier__c</field>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>ContactRecord_MembershipNumber</assignToReference>
-            <field>Membership_Number__c</field>
         </outputAssignments>
     </recordLookups>
     <recordLookups>
@@ -217,14 +163,10 @@
             <assignToReference>EndUser_AuthUserId</assignToReference>
             <field>AuthenticatedEndUserId</field>
         </outputAssignments>
-        <outputAssignments>
-            <assignToReference>EndUser_ContactId</assignToReference>
-            <field>ContactId</field>
-        </outputAssignments>
     </recordLookups>
     <recordLookups>
         <name>Get_User_By_AuthId</name>
-        <label>Get User by Authenticated End User ID</label>
+        <label>Get User ContactId via AuthenticatedEndUserId</label>
         <locationX>440</locationX>
         <locationY>260</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
@@ -248,40 +190,6 @@
             <field>ContactId</field>
         </outputAssignments>
     </recordLookups>
-    <recordLookups>
-        <name>Get_Contact_By_Auth_User</name>
-        <label>Get Contact Fields via Auth User Path</label>
-        <locationX>440</locationX>
-        <locationY>390</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Check_Contact_Found</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Set_Not_Authenticated</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>EndUser_ContactId</elementReference>
-            </value>
-        </filters>
-        <object>Contact</object>
-        <outputAssignments>
-            <assignToReference>ContactRecord_Id</assignToReference>
-            <field>Id</field>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>ContactRecord_LoyaltyTier</assignToReference>
-            <field>Loyalty_Tier__c</field>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>ContactRecord_MembershipNumber</assignToReference>
-            <field>Membership_Number__c</field>
-        </outputAssignments>
-    </recordLookups>
     <start>
         <locationX>56</locationX>
         <locationY>0</locationY>
@@ -301,20 +209,6 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <name>ContactRecord_LoyaltyTier</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <name>ContactRecord_MembershipNumber</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
         <name>EndUser_AuthUserId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -327,5 +221,15 @@
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>Noop_Flag</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
     </variables>
 </Flow>
