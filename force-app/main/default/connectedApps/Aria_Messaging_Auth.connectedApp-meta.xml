@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>dmckee@fdecapstone.com.161026</contactEmail>
+    <label>Aria Messaging Auth</label>
+    <oauthConfig>
+        <callbackUrl>https://orgfarm-fbbbae0e05.my.salesforce.com/services/oauth2/callback</callbackUrl>
+        <isAdminApproved>true</isAdminApproved>
+        <isConsumerSecretOptional>false</isConsumerSecretOptional>
+        <isIntrospectAllTokens>false</isIntrospectAllTokens>
+        <isPkceRequired>false</isPkceRequired>
+        <isSecretRequiredForRefreshToken>false</isSecretRequiredForRefreshToken>
+        <scopes>OpenID</scopes>
+        <scopes>Profile</scopes>
+        <scopes>Web</scopes>
+        <scopes>Api</scopes>
+    </oauthConfig>
+</ConnectedApp>

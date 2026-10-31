@@ -5,7 +5,7 @@
     <assignments>
         <name>Set_Authenticated_Fields</name>
         <label>Set Authenticated Context Fields</label>
-        <locationX>968</locationX>
+        <locationX>1232</locationX>
         <locationY>134</locationY>
         <assignmentItems>
             <assignToReference>$Record.ContactId__c</assignToReference>
@@ -40,7 +40,7 @@
         <name>Set_Not_Authenticated</name>
         <label>Set Not Authenticated</label>
         <locationX>176</locationX>
-        <locationY>500</locationY>
+        <locationY>620</locationY>
         <assignmentItems>
             <assignToReference>$Record.IsAuthenticated__c</assignToReference>
             <operator>Assign</operator>
@@ -52,7 +52,7 @@
     <decisions>
         <name>Check_Contact_Found</name>
         <label>Contact Found?</label>
-        <locationX>704</locationX>
+        <locationX>968</locationX>
         <locationY>134</locationY>
         <defaultConnector>
             <targetReference>Set_Not_Authenticated</targetReference>
@@ -75,9 +75,34 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Check_EndUser_Has_Contact</name>
-        <label>End User Has Contact?</label>
+        <name>Check_EndUser_Has_AuthUser</name>
+        <label>End User Has Authenticated User ID?</label>
         <locationX>440</locationX>
+        <locationY>134</locationY>
+        <defaultConnector>
+            <targetReference>Check_EndUser_Has_Contact</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Auth User ID — try direct ContactId</defaultConnectorLabel>
+        <rules>
+            <name>EndUser_Has_AuthUser</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>EndUser_AuthUserId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_User_By_AuthId</targetReference>
+            </connector>
+            <label>Has Authenticated User ID</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_EndUser_Has_Contact</name>
+        <label>End User Has Direct ContactId?</label>
+        <locationX>704</locationX>
         <locationY>134</locationY>
         <defaultConnector>
             <targetReference>Set_Not_Authenticated</targetReference>
@@ -124,7 +149,7 @@
             <label>Has End User ID</label>
         </rules>
     </decisions>
-    <description>Maps Experience Cloud session data to MessagingSession custom context fields when a new MessagingSession is created. Used by Aria to personalize diner interactions. Resolves ContactId via MessagingEndUser.</description>
+    <description>Maps Experience Cloud session data to MessagingSession custom context fields when a new MessagingSession is created. Primary path: MessagingEndUser.AuthenticatedEndUserId -&gt; User.ContactId (for isExpSiteAuthMode EC sessions). Fallback: MessagingEndUser.ContactId for manually-linked end users.</description>
     <label>Aria Context Variable Mapping</label>
     <processMetadataValues>
         <name>BuilderType</name>
@@ -136,7 +161,7 @@
     <recordLookups>
         <name>Get_Contact_Record</name>
         <label>Get Contact Record</label>
-        <locationX>440</locationX>
+        <locationX>704</locationX>
         <locationY>260</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
@@ -174,7 +199,7 @@
         <locationY>260</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Check_EndUser_Has_Contact</targetReference>
+            <targetReference>Check_EndUser_Has_AuthUser</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Set_Not_Authenticated</targetReference>
@@ -189,8 +214,72 @@
         </filters>
         <object>MessagingEndUser</object>
         <outputAssignments>
+            <assignToReference>EndUser_AuthUserId</assignToReference>
+            <field>AuthenticatedEndUserId</field>
+        </outputAssignments>
+        <outputAssignments>
             <assignToReference>EndUser_ContactId</assignToReference>
             <field>ContactId</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_User_By_AuthId</name>
+        <label>Get User by Authenticated End User ID</label>
+        <locationX>440</locationX>
+        <locationY>260</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Contact_By_Auth_User</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Set_Not_Authenticated</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>EndUser_AuthUserId</elementReference>
+            </value>
+        </filters>
+        <object>User</object>
+        <outputAssignments>
+            <assignToReference>EndUser_ContactId</assignToReference>
+            <field>ContactId</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Contact_By_Auth_User</name>
+        <label>Get Contact Fields via Auth User Path</label>
+        <locationX>440</locationX>
+        <locationY>390</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Contact_Found</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Set_Not_Authenticated</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>EndUser_ContactId</elementReference>
+            </value>
+        </filters>
+        <object>Contact</object>
+        <outputAssignments>
+            <assignToReference>ContactRecord_Id</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>ContactRecord_LoyaltyTier</assignToReference>
+            <field>Loyalty_Tier__c</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>ContactRecord_MembershipNumber</assignToReference>
+            <field>Membership_Number__c</field>
         </outputAssignments>
     </recordLookups>
     <start>
@@ -220,6 +309,13 @@
     </variables>
     <variables>
         <name>ContactRecord_MembershipNumber</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>EndUser_AuthUserId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
