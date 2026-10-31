@@ -12,6 +12,9 @@
         <response>Text STOP to opt out of further messages.</response>
         <type>HelpResponse</type>
     </automatedResponses>
+    <embeddedConfig>
+        <authMode>Auth</authMode>
+    </embeddedConfig>
     <masterLabel>Table Topper Channel</masterLabel>
     <messagingChannelType>EmbeddedMessaging</messagingChannelType>
     <messagingKeywords>
