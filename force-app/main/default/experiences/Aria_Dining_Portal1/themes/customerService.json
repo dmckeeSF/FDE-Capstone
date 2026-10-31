@@ -45,7 +45,7 @@
           "clientVersion" : "WebV1",
           "deploymentName" : "Table_Topper_Channel",
           "hideChatButtonOnLoad" : "Visible",
-          "isExpSiteAuthMode" : true,
+          "isExpSiteAuthMode" : false,
           "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
           "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWTableTopperC1792604109439"
         },
