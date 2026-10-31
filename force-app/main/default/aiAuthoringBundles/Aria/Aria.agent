@@ -195,6 +195,8 @@ subagent reservation_support:
                     is_required: True
             outputs:
                 reservationSummaries: string
+                totalCount: object
+                    complex_data_type_name: "lightning__integerType"
 
         get_reservation:
             description: "Retrieve current reservation details"
