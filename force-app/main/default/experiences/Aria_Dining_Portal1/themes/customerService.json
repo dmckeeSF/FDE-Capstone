@@ -140,6 +140,12 @@
         "id" : "0aee34d5-ace7-46d9-be0f-f316694eab92",
         "renditionMap" : { },
         "type" : "component"
+      }, {
+        "componentAttributes" : { },
+        "componentName" : "c:ariaIdentityInjector",
+        "id" : "b2c1d4e5-f6a7-48b9-c0d1-e2f3a4b5c6d7",
+        "renditionMap" : { },
+        "type" : "component"
       } ],
       "id" : "400969df-f36b-4896-b841-c10fae6ce241",
       "regionName" : "footer",
