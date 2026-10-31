@@ -2,10 +2,23 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Set_ContactId_On_EndUser</name>
+        <label>Set ContactId on End User Record</label>
+        <locationX>704</locationX>
+        <locationY>134</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.ContactId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>User_ContactId</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
     <decisions>
         <name>Check_Contact_Found</name>
         <label>User Has Contact?</label>
-        <locationX>704</locationX>
+        <locationX>440</locationX>
         <locationY>134</locationY>
         <defaultConnectorLabel>No Contact — end</defaultConnectorLabel>
         <rules>
@@ -19,22 +32,22 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Update_MessagingEndUser_ContactId</targetReference>
+                <targetReference>Set_ContactId_On_EndUser</targetReference>
             </connector>
             <label>Contact Found</label>
         </rules>
     </decisions>
     <decisions>
-        <name>Check_EndUser_Has_AuthUser</name>
+        <name>Check_Has_Auth_User</name>
         <label>Has AuthenticatedEndUserId?</label>
-        <locationX>440</locationX>
+        <locationX>176</locationX>
         <locationY>134</locationY>
         <defaultConnectorLabel>No Authenticated User — end</defaultConnectorLabel>
         <rules>
             <name>Has_Auth_User</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>EndUser_AuthUserId</leftValueReference>
+                <leftValueReference>$Record.AuthenticatedEndUserId</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
@@ -46,29 +59,7 @@
             <label>Has Authenticated User</label>
         </rules>
     </decisions>
-    <decisions>
-        <name>Check_EndUser_Present</name>
-        <label>MessagingEndUserId Present?</label>
-        <locationX>176</locationX>
-        <locationY>134</locationY>
-        <defaultConnectorLabel>No End User — end</defaultConnectorLabel>
-        <rules>
-            <name>Has_EndUserId</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>$Record.MessagingEndUserId</leftValueReference>
-                <operator>IsNull</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Get_Messaging_End_User</targetReference>
-            </connector>
-            <label>Has End User ID</label>
-        </rules>
-    </decisions>
-    <description>On MessagingSession create, resolves the authenticated EC user to a Contact and writes MessagingEndUser.ContactId. Path: MessagingEndUser.AuthenticatedEndUserId -&gt; User.ContactId -&gt; update MessagingEndUser.ContactId. Makes @MessagingEndUser.ContactId non-null for the Aria agent.</description>
+    <description>On MessagingEndUser create, resolves the EC authenticated user to a Contact and writes ContactId directly onto the new record (BeforeSave). Path: $Record.AuthenticatedEndUserId -&gt; User.ContactId -&gt; $Record.ContactId. This ensures @MessagingEndUser.ContactId is non-null when Agentforce reads it at session initialization.</description>
     <label>Aria Context Variable Mapping</label>
     <processMetadataValues>
         <name>BuilderType</name>
@@ -78,38 +69,12 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <name>Get_Messaging_End_User</name>
-        <label>Get Messaging End User</label>
+        <name>Get_User_ContactId</name>
+        <label>Get User ContactId via AuthenticatedEndUserId</label>
         <locationX>176</locationX>
         <locationY>260</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Check_EndUser_Has_AuthUser</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Check_EndUser_Has_AuthUser</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.MessagingEndUserId</elementReference>
-            </value>
-        </filters>
-        <object>MessagingEndUser</object>
-        <outputAssignments>
-            <assignToReference>EndUser_AuthUserId</assignToReference>
-            <field>AuthenticatedEndUserId</field>
-        </outputAssignments>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_User_ContactId</name>
-        <label>Get User ContactId via AuthenticatedEndUserId</label>
-        <locationX>440</locationX>
-        <locationY>260</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
             <targetReference>Check_Contact_Found</targetReference>
         </connector>
         <faultConnector>
@@ -120,7 +85,7 @@
             <field>Id</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>EndUser_AuthUserId</elementReference>
+                <elementReference>$Record.AuthenticatedEndUserId</elementReference>
             </value>
         </filters>
         <object>User</object>
@@ -129,45 +94,17 @@
             <field>ContactId</field>
         </outputAssignments>
     </recordLookups>
-    <recordUpdates>
-        <name>Update_MessagingEndUser_ContactId</name>
-        <label>Update MessagingEndUser ContactId</label>
-        <locationX>704</locationX>
-        <locationY>260</locationY>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.MessagingEndUserId</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>ContactId</field>
-            <value>
-                <elementReference>User_ContactId</elementReference>
-            </value>
-        </inputAssignments>
-        <object>MessagingEndUser</object>
-    </recordUpdates>
     <start>
         <locationX>56</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Check_EndUser_Present</targetReference>
+            <targetReference>Check_Has_Auth_User</targetReference>
         </connector>
-        <object>MessagingSession</object>
+        <object>MessagingEndUser</object>
         <recordTriggerType>Create</recordTriggerType>
-        <triggerType>RecordAfterSave</triggerType>
+        <triggerType>RecordBeforeSave</triggerType>
     </start>
     <status>Active</status>
-    <variables>
-        <name>EndUser_AuthUserId</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
     <variables>
         <name>User_ContactId</name>
         <dataType>String</dataType>
