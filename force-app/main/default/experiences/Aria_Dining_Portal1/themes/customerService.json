@@ -45,7 +45,7 @@
           "clientVersion" : "WebV1",
           "deploymentName" : "Table_Topper_Channel",
           "hideChatButtonOnLoad" : "Visible",
-          "isExpSiteAuthMode" : false,
+          "isExpSiteAuthMode" : true,
           "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
           "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWTableTopperC1792604109439"
         },
@@ -140,20 +140,6 @@
       "regionName" : "customRegion",
       "type" : "region"
     }, {
-      "components" : [ {
-        "componentAttributes" : {
-          "clientVersion" : "WebV1",
-          "deploymentName" : "Aria_Chat",
-          "hideChatButtonOnLoad" : "Default",
-          "isExpSiteAuthMode" : true,
-          "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
-          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/dining/s"
-        },
-        "componentName" : "experience_messaging:embeddedMessaging",
-        "id" : "0aee34d5-ace7-46d9-be0f-f316694eab92",
-        "renditionMap" : { },
-        "type" : "component"
-      } ],
       "id" : "400969df-f36b-4896-b841-c10fae6ce241",
       "regionName" : "footer",
       "type" : "region"
