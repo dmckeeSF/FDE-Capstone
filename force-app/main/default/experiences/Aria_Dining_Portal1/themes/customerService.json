@@ -43,11 +43,11 @@
       "components" : [ {
         "componentAttributes" : {
           "clientVersion" : "WebV1",
-          "deploymentName" : "Table_Topper_Channel",
+          "deploymentName" : "Aria_3_Embedded_Service",
           "hideChatButtonOnLoad" : "Visible",
-          "isExpSiteAuthMode" : true,
+          "isExpSiteAuthMode" : false,
           "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
-          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWTableTopperC1792604109439"
+          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWAria3Embedde1793574339872"
         },
         "componentName" : "experience_messaging:embeddedMessaging",
         "id" : "01a057cd-2cf1-4979-825e-7fe2d3e088ec",
