@@ -274,18 +274,26 @@ Still transferring. The Table Topper channel uses `authMode: Auth` (credential-b
 
 ### Current Status (2026-11-01)
 
-**Aria 3 is fully deployed and activated in org.** All metadata is retrieved to `force-app/`.
+**Aria 3 is fully deployed, activated (v3), and wired into the Aria Dining Portal.** All metadata is retrieved to `force-app/`.
 
 | Component | Status |
 |---|---|
-| `Aria3_Routing_Flow` | ✅ Deployed, Active |
+| `Aria3_Routing_Flow` | ✅ Deployed, Active — queue-free (Start → Get_Agent → Get_Service_Channel → routeWork(Copilot)) |
 | `Aria3_Escalation_Flow` | ✅ Deployed, Active |
 | `Aria3_Channel` | ✅ Deployed, Active (id `0MjjV000000IdnhSAC`) |
 | `Aria_3_Embedded_Service` | ✅ Created via wizard, published |
-| `Aria3` AiAuthoringBundle | ✅ Deployed, published, activated |
+| `Aria3` AiAuthoringBundle | ✅ Deployed, published, activated (v3) |
 | Presence Config | ✅ `aria_agent@00djv000005aree.ext` already in Table_Topper_Presence_Config |
+| Experience Cloud portal | ✅ `customerService.json` updated to point to `Aria_3_Embedded_Service`, community published |
 
-**Key discovery:** Raw metadata-deployed MessagingChannels DO appear in the Embedded Service Deployments wizard channel picker (earlier assumption was wrong). The only blocker was the CustomSite dependency — resolved by using the wizard.
+### Routing Flow Change (2026-11-01, Step 11)
 
-**Remaining:** Wire the Aria 3 Embedded Service snippet into the Experience Cloud portal page (Step 10). Until then, Aria 3 is live in the org but not yet surfaced to diners via the portal.
+Per SDO reference pattern (`LanguageChat` / "Route Conversations to Agentforce Service Agents"), the routing flow does NOT need a queue. Removed from `Aria3_Routing_Flow`:
+- `Get_Queue` recordLookup node (queried `Group WHERE DeveloperName='Table_Topper_Queue'`)
+- `queueId`, `queueLabel`, `isQueueVariable` inputParameters from `Route_to_Aria3` actionCall
+- Start connector now goes directly to `Get_Agent`
+
+Flow is now: **Start → Get_Agent (BotDefinition WHERE DeveloperName='Aria3') → Get_Service_Channel → routeWork(Copilot, aria3AgentId)**
+
+Deployed as id `301jV00000JLVaYQAX`, Aria3 republished + activated as v3.
 

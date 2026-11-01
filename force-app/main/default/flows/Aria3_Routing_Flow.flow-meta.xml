@@ -39,18 +39,6 @@
             </value>
         </inputParameters>
         <inputParameters>
-            <name>queueId</name>
-            <value>
-                <elementReference>Get_Queue.Id</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>queueLabel</name>
-            <value>
-                <stringValue>Table Topper Queue</stringValue>
-            </value>
-        </inputParameters>
-        <inputParameters>
             <name>copilotId</name>
             <value>
                 <elementReference>aria3AgentId</elementReference>
@@ -62,19 +50,13 @@
                 <stringValue>Aria 3</stringValue>
             </value>
         </inputParameters>
-        <inputParameters>
-            <name>isQueueVariable</name>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </inputParameters>
         <nameSegment>routeWork</nameSegment>
         <offset>0</offset>
         <versionString>2.0.0</versionString>
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <description>EM2-pattern routing flow for Aria 3. Queries Aria3 BotDefinition and Table Topper Queue, then routes work to Aria 3 via Copilot routing.</description>
+    <description>EM2-pattern routing flow for Aria 3. Queries Aria3 BotDefinition and Messaging ServiceChannel, then routes work to Aria 3 via Copilot routing (no queue).</description>
     <environments>Default</environments>
     <interviewLabel>Aria3 Routing Flow {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Aria3 Routing Flow</label>
@@ -117,41 +99,11 @@
                 <stringValue>Aria3</stringValue>
             </value>
         </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>BotDefinition</object>
         <outputAssignments>
             <assignToReference>aria3AgentId</assignToReference>
             <field>Id</field>
         </outputAssignments>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_Queue</name>
-        <label>Get Table Topper Queue</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Get_Agent</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>DeveloperName</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Table_Topper_Queue</stringValue>
-            </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Queue</stringValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Group</object>
-        <queriedFields>Id</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
         <name>Get_Service_Channel</name>
@@ -173,7 +125,6 @@
                 <stringValue>sfdc_livemessage</stringValue>
             </value>
         </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>ServiceChannel</object>
         <outputAssignments>
             <assignToReference>serviceChannelId</assignToReference>
@@ -184,7 +135,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Queue</targetReference>
+            <targetReference>Get_Agent</targetReference>
         </connector>
     </start>
     <status>Active</status>
