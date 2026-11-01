@@ -23,6 +23,7 @@ public without sharing class GetContactProfileAction {
                 }
             }
 
+            dto.resolvedContactId = String.isNotBlank(resolvedContactId) ? resolvedContactId : '';
             if (String.isBlank(resolvedContactId)) {
                 results.add(dto);
                 continue;
@@ -70,5 +71,6 @@ public without sharing class GetContactProfileAction {
         @InvocableVariable public String  loyaltyTier;
         @InvocableVariable public String  email;
         @InvocableVariable public Boolean profileFound;
+        @InvocableVariable public String  resolvedContactId;
     }
 }
