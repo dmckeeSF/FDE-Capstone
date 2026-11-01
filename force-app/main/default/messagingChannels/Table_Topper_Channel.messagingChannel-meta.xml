@@ -40,7 +40,7 @@
         <keywordType>Help</keywordType>
         <language>en_US</language>
     </messagingKeywords>
-    <sessionHandlerAsa>Aria2</sessionHandlerAsa>
+    <sessionHandlerFlow>Aria_Contact_Linking_Flow</sessionHandlerFlow>
     <sessionHandlerQueue>Table_Topper_Queue</sessionHandlerQueue>
-    <sessionHandlerType>AgentforceServiceAgent</sessionHandlerType>
+    <sessionHandlerType>Flow</sessionHandlerType>
 </MessagingChannel>
