@@ -90,8 +90,7 @@
         <inputParameters>
             <name>copilotId</name>
             <value>
-                <setupReference>Aria2</setupReference>
-                <setupReferenceType>BotDefinition</setupReferenceType>
+                <elementReference>ariaAgentId</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -191,6 +190,32 @@
     </processMetadataValues>
     <processType>RoutingFlow</processType>
     <recordLookups>
+        <name>Get_Agent</name>
+        <label>Get Aria2 Bot Definition</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Session</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Route_Work</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DeveloperName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Aria2</stringValue>
+            </value>
+        </filters>
+        <object>BotDefinition</object>
+        <outputAssignments>
+            <assignToReference>ariaAgentId</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
         <name>Get_End_User</name>
         <label>Get Messaging End User</label>
         <locationX>0</locationX>
@@ -223,7 +248,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Get_Session</targetReference>
+            <targetReference>Get_Agent</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -332,6 +357,13 @@
         </connector>
     </start>
     <status>Active</status>
+    <variables>
+        <name>ariaAgentId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <name>authUserId</name>
         <dataType>String</dataType>
