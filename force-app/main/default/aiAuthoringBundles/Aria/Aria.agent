@@ -42,6 +42,10 @@ variables:
         description: "The authenticated diner's first name — populated at session start by get_contact_profile"
     profile_loaded: mutable boolean = False
         description: "True only when get_contact_profile found a Contact record with a non-blank email — used as a null-safe gate before calling get_loyalty_tier"
+    reservations_loaded: mutable boolean = False
+        description: "True once list_reservations has been called for this session — prevents duplicate calls"
+    reservation_summaries: mutable string = ""
+        description: "Pipe-delimited reservation list from list_reservations — empty string means no upcoming reservations found"
 
 language:
     default_locale: "en_US"
@@ -87,6 +91,14 @@ start_agent agent_router:
               - Intent unclear: go to ambiguous_question
               If the diner's message contains two distinct requests, note both. Transition for the primary request. After that subagent completes, they must use go_to_agent_router; at that point immediately offer to handle the secondary request using any restaurant or reservation context already in the session.
         actions:
+            get_contact_profile: @actions.get_contact_profile
+                description: "Load the authenticated diner's profile (first name, email, loyalty tier)"
+                with contactId = @variables.ContactId
+                available when @variables.ContactId != ""
+            get_loyalty_tier: @actions.get_loyalty_tier
+                description: "Fetch the diner's loyalty tier from the external loyalty program"
+                with contactEmail = @variables.contact_email
+                available when @variables.contact_email != ""
             go_to_reservation_support: @utils.transition to @subagent.reservation_support
             go_to_cancellation_support: @utils.transition to @subagent.cancellation_support
             go_to_booking_support: @utils.transition to @subagent.booking_support
@@ -143,13 +155,21 @@ subagent reservation_support:
             if @variables.ContactId == "":
                 | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
                   Do NOT escalate or transfer to a human agent — just ask the diner to log in.
-            if @variables.ContactId != "" and @variables.booking_reference == "":
-                | No booking reference is on file for this session. Call list_reservations immediately to retrieve the diner's upcoming reservations. Do NOT ask the diner for their booking reference before calling list_reservations.
-                  The action returns reservationSummaries (pipe-delimited lines: BookingRef|Restaurant|Date|Time|PartySize|Status) and totalCount.
-                  If totalCount is 0, tell the diner: "I don't see any upcoming reservations on your account. Would you like to make a new booking?"
-                  If the diner indicated a restaurant or date, confirm: "I found your reservation at [restaurant] on [date] — is that the one you mean?"
-                  If multiple matches exist, display each as a short card (nearest date first): "**[BookingRef]** · [Restaurant] · [Date], [Time] · [N] guests" — then ask which one they'd like to manage.
-                  Once identified, call get_reservation to fetch full details before making changes.
+            if @variables.ContactId != "" and @variables.booking_reference == "" and @variables.reservations_loaded == False:
+                run @actions.list_reservations
+                    with contactId = @variables.ContactId
+                    set @variables.reservation_summaries = @outputs.reservationSummaries
+                    set @variables.reservations_loaded = True
+            if @variables.reservations_loaded == True and @variables.reservation_summaries == "":
+                | I don't see any upcoming reservations on your account. Would you like to make a new booking?
+            if @variables.reservations_loaded == True and @variables.reservation_summaries != "":
+                | Here are the diner's upcoming reservations (format: BookingRef|Restaurant|Date|Time|PartySize|Status):
+                  {!@variables.reservation_summaries}
+                  Display each line as a short card (nearest date first): "**[BookingRef]** · [Restaurant] · [Date], [Time] · [N] guests"
+                  If the diner indicated a restaurant or date, ask: "Is that the one you mean?"
+                  Otherwise ask: "Which reservation would you like to manage?"
+                  Do NOT ask about changes until the diner has selected a specific reservation.
+                  Once identified, call get_reservation to fetch full details before making any changes.
                   Do NOT escalate to a human agent just because the diner asked to see their reservations — handle this entirely yourself.
             if @variables.ContactId != "" and @variables.booking_reference != "":
                 | Booking reference {!@variables.booking_reference} is known. Call get_reservation to fetch current details before making any changes.
