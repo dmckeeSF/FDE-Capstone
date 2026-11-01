@@ -124,9 +124,6 @@ start_agent agent_router:
             outputs:
                 loyaltyTier: string
                 memberId: string
-                isSuccess: object
-                    complex_data_type_name: "lightning__booleanType"
-                errorMessage: string
 
 subagent reservation_support:
     label: "Reservation Support"
@@ -674,3 +671,9 @@ subagent booking_support:
                 message: string
                 isSuccess: object
                     complex_data_type_name: "lightning__booleanType"
+
+connection messaging:
+    outbound_route_type: "OmniChannelFlow"
+    outbound_route_name: "flow://"
+    escalation_message: "One moment, I'm transferring our conversation to get you more help."
+    adaptive_response_allowed: True
