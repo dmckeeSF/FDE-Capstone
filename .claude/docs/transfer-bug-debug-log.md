@@ -137,12 +137,14 @@ Look at Setup → Omni-Channel → Routing Configurations and Queues to see if t
 
 ---
 
-## Current State (updated 2026-11-01, 1:15 PM Pacific)
+## Current State (updated 2026-11-01, resumed session)
 
-- Aria2 **v20** active ✅
+- Aria2 **v21** active ✅ (v19 was active before resume — v20 bundle was deployed but never published; published + activated as v21 in this session)
 - Channel: `sessionHandlerType: Flow`, `sessionHandlerFlow: Aria_Contact_Linking_Flow` ✓
 - `connection messaging:` with `outbound_route_name: flow://Aria_Escalation_Flow` + `escalation_message:` ✓
-- **TRANSFER BUG FIXED — Preview confirms correct routing**
+- v21 confirmed: `escalationMessage` + `outboundRouteName: Aria_Escalation_Flow` in deployed XML ✓
+- Pushed to `capPriv` ✓
+- **TRANSFER BUG FIX PUBLISHED — Awaiting live portal test**
 
 ### Root Cause (Final — 2026-11-01, 1:15 PM)
 Three separate issues were present:
@@ -225,3 +227,65 @@ Login to Table Topper portal as Bob Garcia or Sofia Rodriguez. Send any message.
 
 1. `ServiceAgentEscalationFlow` system flow — what triggers it (lower priority now)
 2. Whether `Aria_Portal_Access` permset class accesses are live in org (they're in XML + assigned, but worth verifying if test fails)
+
+---
+
+## ARIA 3 — EM2 Pattern (SDO-Style) — Started 2026-11-01
+
+### Decision to Abandon Aria2 / Table Topper Channel Approach
+
+After exhaustive debugging, Aria2 on the Table Topper Channel still transfers on every live portal session. Confirmed root causes investigated and fixed:
+- `escalationMessage` missing → fixed (v21)
+- `setupReference` for copilotId → fixed (dynamic BotDefinition lookup)
+- Einstein Agent User not in Presence Config → fixed (added to Table Topper Presence Config)
+
+Still transferring. The Table Topper channel uses `authMode: Auth` (credential-based JWT verification) which adds complexity the SDO reference implementation does not have. Rather than continue patching, pivot to a clean EM2 pattern matching the SDO exactly.
+
+### Aria 3 Architecture
+
+| Component | Value |
+|---|---|
+| Agent bundle | `Aria3` — copy of Aria2 agent script |
+| Routing flow | `Aria3_Routing_Flow` — simple SDO-style: Get_Queue → Get_Agent → Route_Work(Copilot, Aria3) |
+| Messaging channel | `Aria3_Channel` — EmbeddedMessaging, NO `authMode: Auth`, sessionHandlerType: Flow |
+| EmbeddedService deployment | `Aria3_Embedded_Service` — new deployment on same site |
+| Escalation flow | `Aria3_Escalation_Flow` — routes to Table_Topper_Queue |
+| Presence config | Add Aria3's Einstein Agent User to Table_Topper_Presence_Config after first publish |
+
+### Key Differences from Aria2 / Table Topper
+
+1. **No `authMode: Auth`** — removes JWT credential verification; contact linking done via routing flow if MEU has AuthenticatedEndUserId, otherwise graceful fallback
+2. **Simplified routing flow** — no complex Contact linking chain that could fail silently
+3. **New agent user** — Aria3 gets its own Einstein Agent User on first publish (must add to presence config)
+4. **Clean slate** — no legacy Table Topper channel config in the critical path
+
+### Execution Steps
+
+- [x] Step 1: Generate Aria3 authoring bundle — `sf agent generate authoring-bundle --no-spec --api-name Aria3`
+- [x] Step 2: Copy Aria2 agent script → Aria3, updated `developer_name: "Aria3"`, `agent_label: "Aria 3"`, `outbound_route_name: "flow://Aria3_Escalation_Flow"`
+- [x] Step 3: Created `Aria3_Escalation_Flow` — routes to Table_Topper_Queue via routingType=Queue, deployed (id `301jV00000JKtobQAD`)
+- [x] Step 4: Created `Aria3_Routing_Flow` — Get_Queue → Get_Agent (BotDefinition WHERE DeveloperName='Aria3') → Get_Service_Channel → routeWork(Copilot, Aria3), deployed (id `301jV00000JKtocQAD`)
+- [x] Step 5: Created `Aria3_Channel` — EmbeddedMessaging, sessionHandlerType: Flow, sessionHandlerFlow: Aria3_Routing_Flow, deployed and Activated (id `0MjjV000000IdnhSAC`)
+- [x] Step 6: Created `Aria_3_Embedded_Service` EmbeddedServiceConfig — via UI wizard (Embedded Service Deployments); wizard auto-created CustomSite `ESW_Aria_3_Embedde_17935743398721` and associated Network. Metadata API direct deploy was blocked: ChatterNetwork-type CustomSites require a pre-existing Experience Cloud Network.
+- [x] Step 7: Deployed all metadata — flows via `sf project deploy start`, channel via deploy, ESConfig via wizard + retrieve
+- [x] Step 8: Validated, published (`sf agent publish authoring-bundle --api-name Aria3` → success: true, deployed: 3), activated (`sf agent activate --api-name Aria3` → Status: 0)
+- [x] Step 9: Aria3 reuses same Einstein Agent User (`aria_agent@00djv000005aree.ext`) as Aria2 — no new agent user created on publish. Existing `Table_Topper_Presence_Config` assignment already covers Aria3.
+- [ ] Step 10: Update Experience Cloud site to use Aria3_Embedded_Service — PENDING (requires portal page edit in Experience Builder)
+
+### Current Status (2026-11-01)
+
+**Aria 3 is fully deployed and activated in org.** All metadata is retrieved to `force-app/`.
+
+| Component | Status |
+|---|---|
+| `Aria3_Routing_Flow` | ✅ Deployed, Active |
+| `Aria3_Escalation_Flow` | ✅ Deployed, Active |
+| `Aria3_Channel` | ✅ Deployed, Active (id `0MjjV000000IdnhSAC`) |
+| `Aria_3_Embedded_Service` | ✅ Created via wizard, published |
+| `Aria3` AiAuthoringBundle | ✅ Deployed, published, activated |
+| Presence Config | ✅ `aria_agent@00djv000005aree.ext` already in Table_Topper_Presence_Config |
+
+**Key discovery:** Raw metadata-deployed MessagingChannels DO appear in the Embedded Service Deployments wizard channel picker (earlier assumption was wrong). The only blocker was the CustomSite dependency — resolved by using the wizard.
+
+**Remaining:** Wire the Aria 3 Embedded Service snippet into the Experience Cloud portal page (Step 10). Until then, Aria 3 is live in the org but not yet surfaced to diners via the portal.
+

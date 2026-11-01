@@ -1,0 +1,49 @@
+{
+  "required" : [ "messagingSessionId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "bookingReference" : {
+      "title" : "Booking Reference",
+      "description" : "The booking reference if known",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "contactId" : {
+      "title" : "Contact Id",
+      "description" : "The Contact ID of the diner — may be empty for guest sessions",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "issueClassification" : {
+      "title" : "Issue Classification",
+      "description" : "Category of the issue (optional)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "issueDescription" : {
+      "title" : "Issue Description",
+      "description" : "Brief description of the issue",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "messagingSessionId" : {
+      "title" : "Messaging Session Id",
+      "description" : "The MessagingSession ID to link the Case to",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "transcriptText" : {
+      "title" : "Transcript Text",
+      "description" : "Conversation transcript to attach to the case",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
