@@ -1,0 +1,35 @@
+{
+  "required" : [ "restaurantName", "reservationDate" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "partySize" : {
+      "title" : "Party Size",
+      "description" : "Number of guests — optional, defaults to 2 if not provided",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "requestedTime" : {
+      "title" : "Requested Time",
+      "description" : "Requested time in HH:mm format — optional, LLM slot-filled when diner specifies a time",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reservationDate" : {
+      "title" : "Reservation Date",
+      "description" : "The date to check availability",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "restaurantName" : {
+      "title" : "Restaurant Name",
+      "description" : "The name of the restaurant",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

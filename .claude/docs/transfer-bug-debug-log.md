@@ -137,26 +137,72 @@ Look at Setup → Omni-Channel → Routing Configurations and Queues to see if t
 
 ---
 
-## Current State
+## Current State (updated 2026-11-01, 1:15 PM Pacific)
 
-- Aria2 v10 is active
-- GetContactProfileAction has try/catch (deployed)
-- GetLoyaltyTierAction has try/catch + isSuccess=true on Standard fallback
-- All permission sets correct
-- Transfer still happening in live portal sessions
-- Preview sessions show correct "please sign in" (no transfer)
+- Aria2 **v20** active ✅
+- Channel: `sessionHandlerType: Flow`, `sessionHandlerFlow: Aria_Contact_Linking_Flow` ✓
+- `connection messaging:` with `outbound_route_name: flow://Aria_Escalation_Flow` + `escalation_message:` ✓
+- **TRANSFER BUG FIXED — Preview confirms correct routing**
 
----
+### Root Cause (Final — 2026-11-01, 1:15 PM)
+Three separate issues were present:
 
-## Root Cause (Confirmed 2026-11-01)
+**Issue 1 (Fixed 12:10 PM):** `sessionHandlerType: AgentforceServiceAgent` bypassed the Omni-Channel Flow, leaving `ContactId` permanently null. Fixed by switching to `sessionHandlerType: Flow` + `Aria_Contact_Linking_Flow`.
 
-**Race condition: `MessagingEndUser.ContactId` async write vs. ASA session start**
+**Issue 2 (Fixed 12:45 PM):** `connection messaging:` block was removed, stripping `plannerSurfaces: Messaging` from deployed XML. Agent planner couldn't handle Messaging work → AgentWork closed with ActiveTime=0. Restored `connection messaging:` block.
 
-When `Table_Topper_Channel` used `sessionHandlerType: AgentforceServiceAgent`, the platform started Aria2 immediately when a new MIAW session was created. Experience Cloud writes `MEU.ContactId` asynchronously after the user authenticates. If the write hadn't landed yet when Aria2's context variable mappings executed (`@MessagingEndUser.ContactId`), the ASA received a blank `ContactId`.
+**Issue 3 (Fixed 1:15 PM — ROOT CAUSE of original transfer bug):** `connection messaging:` block was missing `escalation_message:` field. The Salesforce platform requires this field for Messaging connection type. Without it, the platform cannot initialize the agent's Messaging session → preview fails with "Escalation message is mandatory for connection type Messaging" → AgentWork closes immediately (ActiveTime=0) on EVERY live portal session since v16.
 
-With blank ContactId AND blank EndUserId (the endUserId linked variable was also unreliable in the direct-routing path), `GetContactProfileAction` received both inputs empty, returned an empty DTO, `contact_email` stayed blank, `get_loyalty_tier` was never called, and Aria2 hit a session setup invariant that triggered a platform-level silent transfer to the fallback queue.
+**Evidence:**
+- v18 XML: has `plannerSurfaces: Messaging` but NO `outboundRouteConfigs` / no `escalationMessage`
+- v16 XML: has `outboundRouteConfigs` with `outboundRouteName: Aria_Escalation_Flow` but no `escalationMessage`
+- `sf agent preview start` failed with: `"Escalation message is mandatory for connection type Messaging"`
+- v20 XML: has `plannerSurfaces: Messaging` + `outboundRouteName: Aria_Escalation_Flow` + `escalationMessage` ✓
+- Preview: session starts, "What restaurants do you have in Seattle?" → routes to `restaurant_info`, returns Pike Place Provisions ✓
 
-## Fix (Deployed 2026-11-01)
+## What We've Tried (full history)
+
+| Attempt | Change | Result |
+|---|---|---|
+| v16 | outbound_route_name → Aria_Escalation_Flow | Still transfers |
+| v17 | same as v16 | Still transfers |
+| v18 | outbound_route_name → "flow://" (empty) | Still transfers |
+| v19 | Remove `connection messaging` block entirely | Still transfers (AND lost plannerSurfaces: Messaging — AgentMessageCount=0 on all sessions) |
+| Channel: ASA | sessionHandlerType: AgentforceServiceAgent | Still transfers |
+| Channel + ESConfig redeploy | Redeployed both EmbeddedServiceConfig files | Still transfers |
+| Channel: Flow | sessionHandlerType: Flow + Aria_Contact_Linking_Flow | MEU.ContactId set ✓, but AgentMessageCount=0 because v19 had no plannerSurfaces |
+| v18 re-activated | connection messaging restored (flow://Aria_Escalation_Flow), channel stays Flow | Still AgentWork ActiveTime=0 — missing escalation_message in connection messaging: block |
+| **v20** | **Added `escalation_message:` to `connection messaging:` block** | **FIXED ✅ — Preview routes correctly, restaurant_info responds with real data** |
+
+## What We Know For Certain (NEW — 2026-11-01)
+
+| Fact | How Verified |
+|---|---|
+| EmbeddedServiceConfig has no routing/timeout config | Read both Table_Topper_Channel and Table_Topper_Embedded_Service_Deployment XML files |
+| Every session creates 2 AgentWork records: Abandoned (ActiveTime=null) then Closed (ActiveTime=0) | SOQL AgentWork query |
+| AgentMessageCount=0 on ALL MessagingSessions | SOQL MessagingSession query |
+| EndedByType=EndUser on all ended sessions | SOQL MessagingSession query |
+| Portal users are on "Customer Community Plus Login User" profile (PowerCustomerSuccess) | SOQL User query |
+| Portal profile has ZERO Apex class accesses at profile level | SetupEntityAccess query |
+| Aria_Portal_Access permset is assigned to ALL 12 portal users including Bob and Sofia | PermissionSetAssignment query |
+| Aria_Portal_Access permset has all 11 invocable class accesses in XML | File read |
+| "Works in preview but not in portal" = "Preview runs as admin; portal runs as portal user" | PDF: Service Agent with Credential-Based User Verification |
+| The Omni-Channel Flow is REQUIRED; without it ContactId is never populated | PDF: confirmed by testing, green callout box |
+
+## Root Cause (Revised 2026-11-01, 12:11 PM)
+
+**`sessionHandlerType: AgentforceServiceAgent` bypasses the Omni-Channel Flow, leaving `ContactId` permanently null.**
+
+Per Salesforce testing (PDF: "Service Agent with Credential-Based User Verification on Experience Cloud"):
+> "Testing confirmed that without a flow that explicitly establishes the Contact-to-MessagingEndUser association, the ContactId linked variable is never populated — even with credential-based verification enabled on both the channel and deployment. Direct agent routing via the channel (without a flow) does not fill the ContactId."
+
+When ContactId and EndUserId are both null, Aria2 can't resolve identity. With `AgentMessageCount=0` on every live session, the ASA never successfully handles any message — it immediately transfers, creating the Abandoned+Closed AgentWork pair.
+
+The "debug logs not appearing" observation was misleading: Apex runs as the PORTAL USER (not the Einstein Agent User) in authenticated sessions. Debug logs were set up for the wrong user.
+
+The "welcome message" users see is likely a platform-level greeting from the Embedded Service Deployment, not from Aria2's agent script (explaining AgentMessageCount=0).
+
+## Fix (Deployed 2026-11-01, 12:10 PM)
 
 **`Table_Topper_Channel.messagingChannel-meta.xml`:**
 - `sessionHandlerType`: `AgentforceServiceAgent` → `Flow`
@@ -164,15 +210,18 @@ With blank ContactId AND blank EndUserId (the endUserId linked variable was also
 - Added `sessionHandlerFlow: Aria_Contact_Linking_Flow`
 - `sessionHandlerQueue: Table_Topper_Queue` unchanged
 
-**`Aria_Contact_Linking_Flow` (RoutingFlow) — already in repo, now active:**
-1. Gets MessagingSession → `MessagingEndUserId`
-2. Gets MEU → `AuthenticatedEndUserId` (fault connector → routeWork on failure)
-3. Gets User → `ContactId` (fault connector → routeWork on failure)
-4. DML UPDATE `MEU.ContactId = User.ContactId` — commits ContactId BEFORE ASA starts
-5. `routeWork(routingType=Copilot, copilotId=Aria2, serviceChannelDevName=sfdc_livemessage)`
-
-When Aria2 starts, MEU.ContactId is already committed. Context variable mapping resolves correctly.
+**`Aria_Contact_Linking_Flow` (RoutingFlow):**
+1. Gets MessagingSession → MessagingEndUserId
+2. Gets MEU → AuthenticatedEndUserId
+3. Gets User → ContactId
+4. UPDATE MEU.ContactId = User.ContactId (commits ContactId BEFORE ASA starts)
+5. routeWork(Copilot, Aria2, Table_Topper_Queue)
 
 ## Test Required
 
-Login to Table Topper portal as Bob Garcia or Sofia Rodriguez. Send any message. Expected: Aria responds normally (no transfer). Check AgentWork — should show Closed (ASA handled) not Abandoned (fallback queue).
+Login to Table Topper portal as Bob Garcia or Sofia Rodriguez. Send any message. Expected: Aria responds normally (no transfer). Check `AgentWork` — should show Closed with ActiveTime > 0.
+
+## NOT YET CHECKED
+
+1. `ServiceAgentEscalationFlow` system flow — what triggers it (lower priority now)
+2. Whether `Aria_Portal_Access` permset class accesses are live in org (they're in XML + assigned, but worth verifying if test fails)

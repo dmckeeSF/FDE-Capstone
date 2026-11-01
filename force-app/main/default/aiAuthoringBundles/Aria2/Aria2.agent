@@ -675,5 +675,5 @@ subagent booking_support:
 connection messaging:
     outbound_route_type: "OmniChannelFlow"
     outbound_route_name: "flow://Aria_Escalation_Flow"
-    escalation_message: "One moment, I'm transferring our conversation to get you more help."
-    adaptive_response_allowed: True
+    escalation_message: "I'm connecting you with a support agent now. Please hold for a moment."
+
