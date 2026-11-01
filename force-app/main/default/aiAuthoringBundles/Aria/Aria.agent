@@ -58,9 +58,10 @@ start_agent agent_router:
 
     reasoning:
         instructions: ->
-            if @variables.ContactId != "":
+            if @variables.ContactId != "" or @variables.EndUserId != "":
                 run @actions.get_contact_profile
                     with contactId = @variables.ContactId
+                    with endUserId = @variables.EndUserId
                     set @variables.contact_email = @outputs.email
                     set @variables.first_name = @outputs.firstName
                     set @variables.profile_loaded = @outputs.profileFound
@@ -94,7 +95,8 @@ start_agent agent_router:
             get_contact_profile: @actions.get_contact_profile
                 description: "Load the authenticated diner's profile (first name, email, loyalty tier)"
                 with contactId = @variables.ContactId
-                available when @variables.ContactId != ""
+                with endUserId = @variables.EndUserId
+                available when @variables.ContactId != "" or @variables.EndUserId != ""
             get_loyalty_tier: @actions.get_loyalty_tier
                 description: "Fetch the diner's loyalty tier from the external loyalty program"
                 with contactEmail = @variables.contact_email
@@ -118,7 +120,10 @@ start_agent agent_router:
             inputs:
                 contactId: string
                     description: "The Contact record Id from @variables.ContactId"
-                    is_required: True
+                    is_required: False
+                endUserId: string
+                    description: "The MessagingEndUser Id from @variables.EndUserId — fallback when ContactId is empty"
+                    is_required: False
             outputs:
                 firstName: string
                 lastName: string

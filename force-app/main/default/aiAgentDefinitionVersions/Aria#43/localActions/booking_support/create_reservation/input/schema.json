@@ -1,0 +1,49 @@
+{
+  "required" : [ "contactId", "restaurantName", "reservationDate", "reservationTime", "partySize" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "contactId" : {
+      "title" : "Contact Id",
+      "description" : "The Contact ID of the diner",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "partySize" : {
+      "title" : "Party Size",
+      "description" : "Number of guests",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reservationDate" : {
+      "title" : "Reservation Date",
+      "description" : "Reservation date in YYYY-MM-DD format",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reservationTime" : {
+      "title" : "Reservation Time",
+      "description" : "Reservation time in HH:mm format",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "restaurantName" : {
+      "title" : "Restaurant Name",
+      "description" : "The name of the restaurant",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "specialRequests" : {
+      "title" : "Special Requests",
+      "description" : "Any special requests or dietary notes (optional)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
