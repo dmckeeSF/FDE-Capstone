@@ -191,6 +191,32 @@
     </processMetadataValues>
     <processType>RoutingFlow</processType>
     <recordLookups>
+        <name>Get_End_User</name>
+        <label>Get Messaging End User</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Auth_User_Id</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Route_Work</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>messagingEndUserId</elementReference>
+            </value>
+        </filters>
+        <object>MessagingEndUser</object>
+        <outputAssignments>
+            <assignToReference>authUserId</assignToReference>
+            <field>AuthenticatedEndUserId</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
         <name>Get_Queue</name>
         <label>Get Routing Queue</label>
         <locationX>0</locationX>
@@ -218,32 +244,6 @@
         <object>Group</object>
         <queriedFields>Id</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_End_User</name>
-        <label>Get Messaging End User</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Check_Auth_User_Id</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Route_Work</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>messagingEndUserId</elementReference>
-            </value>
-        </filters>
-        <object>MessagingEndUser</object>
-        <outputAssignments>
-            <assignToReference>authUserId</assignToReference>
-            <field>AuthenticatedEndUserId</field>
-        </outputAssignments>
     </recordLookups>
     <recordLookups>
         <name>Get_Session</name>

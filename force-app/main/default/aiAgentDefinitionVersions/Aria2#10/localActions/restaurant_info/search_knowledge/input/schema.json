@@ -1,0 +1,21 @@
+{
+  "required" : [ "searchQuery" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "dataCategory" : {
+      "title" : "Data Category",
+      "description" : "Knowledge data category scope",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "searchQuery" : {
+      "title" : "Search Query",
+      "description" : "The search query, e.g. 'restaurant guide Italian' or 'restaurant guide Bellevue'",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

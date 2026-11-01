@@ -4,14 +4,22 @@ public without sharing class GetContactProfileAction {
     public static List<ContactProfileDTO> execute(List<ContactRequest> requests) {
         List<ContactProfileDTO> results = new List<ContactProfileDTO>();
         for (ContactRequest req : requests) {
-            ContactProfileDTO dto = new ContactProfileDTO();
-            dto.firstName         = '';
-            dto.lastName          = '';
-            dto.loyaltyTier       = '';
-            dto.email             = '';
-            dto.resolvedContactId = '';
-            dto.profileFound      = false;
+            results.add(lookup(req));
+        }
+        return results;
+    }
 
+    private static ContactProfileDTO lookup(ContactRequest req) {
+        ContactProfileDTO dto = new ContactProfileDTO();
+        dto.firstName         = '';
+        dto.lastName          = '';
+        dto.loyaltyTier       = '';
+        dto.email             = '';
+        dto.resolvedContactId = '';
+        dto.profileFound      = false;
+
+        try {
+            System.debug('GCP_DEBUG contactId=[' + req.contactId + '] endUserId=[' + req.endUserId + ']');
             String resolvedContactId = req.contactId;
 
             // Direct ASA routing never writes MessagingEndUser.ContactId.
@@ -39,8 +47,7 @@ public without sharing class GetContactProfileAction {
             }
 
             if (String.isBlank(resolvedContactId)) {
-                results.add(dto);
-                continue;
+                return dto;
             }
 
             dto.resolvedContactId = resolvedContactId;
@@ -73,9 +80,11 @@ public without sharing class GetContactProfileAction {
                 dto.email        = c.Email     != null       ? c.Email            : '';
                 dto.profileFound = String.isNotBlank(c.Email);
             }
-            results.add(dto);
+        } catch (Exception e) {
+            // Return empty dto on any failure — agent handles gracefully via resolved_contact_id check
+            dto.resolvedContactId = '';
         }
-        return results;
+        return dto;
     }
 
     public class ContactRequest {

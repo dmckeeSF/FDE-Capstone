@@ -1,0 +1,21 @@
+{
+  "required" : [ "bookingReference", "contactId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "bookingReference" : {
+      "title" : "Booking Reference",
+      "description" : "The booking reference number",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "contactId" : {
+      "title" : "Contact Id",
+      "description" : "The Contact ID of the authenticated diner — required for ownership verification",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

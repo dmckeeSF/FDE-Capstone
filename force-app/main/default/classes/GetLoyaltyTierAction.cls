@@ -61,28 +61,30 @@ public without sharing class GetLoyaltyTierAction {
             String memberId;
 
             if (dmoTestData != null) {
-                if (!dmoTestData.containsKey(emailLower)) {
-                    res.errorMessage = 'Diner not found in loyalty program.';
-                    return res;
+                if (dmoTestData.containsKey(emailLower)) {
+                    tier     = dmoTestData.get(emailLower).get('tier');
+                    memberId = dmoTestData.get(emailLower).get('memberId');
                 }
-                tier     = dmoTestData.get(emailLower).get('tier');
-                memberId = dmoTestData.get(emailLower).get('memberId');
+                // Not found → Standard fallback (isSuccess stays true)
             } else {
                 List<SObject> records = Database.query(
                     'SELECT tier__c, member_id__c FROM ' + DMO +
                     ' WHERE email__c = :emailLower LIMIT 1'
                 );
-                if (records.isEmpty()) {
-                    res.errorMessage = 'Diner not found in loyalty program.';
-                    return res;
+                if (!records.isEmpty()) {
+                    tier     = (String) records[0].get('tier__c');
+                    memberId = (String) records[0].get('member_id__c');
                 }
-                tier     = (String) records[0].get('tier__c');
-                memberId = (String) records[0].get('member_id__c');
+                // Not found → Standard fallback (isSuccess stays true)
             }
 
-            res.loyaltyTier = tier;
-            res.memberId    = memberId;
-            res.isSuccess   = true;
+            if (String.isNotBlank(tier)) {
+                res.loyaltyTier = tier;
+                res.memberId    = memberId;
+                res.isSuccess   = true;
+            } else {
+                res.errorMessage = 'Loyalty tier not found for this email.';
+            }
             return res;
 
         } catch (Exception e) {

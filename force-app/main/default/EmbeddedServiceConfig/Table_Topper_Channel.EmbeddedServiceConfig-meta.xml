@@ -4,6 +4,10 @@
     <branding>EmbeddedServiceConfig_BrandingSet_1a15f8833ce</branding>
     <deploymentFeature>EmbeddedMessaging</deploymentFeature>
     <deploymentType>Web</deploymentType>
+    <embeddedServiceForms>
+        <displayContext>Conversation</displayContext>
+        <isActive>false</isActive>
+    </embeddedServiceForms>
     <embeddedServiceMessagingChannel>
         <isChatInvitationCustomizable>false</isChatInvitationCustomizable>
         <isEnabled>true</isEnabled>
