@@ -85,4 +85,5 @@ private class GetContactProfileActionTest {
         System.assertEquals('', results[0].firstName);
         System.assert(!results[0].profileFound, 'profileFound should be false when Contact not found');
     }
+
 }

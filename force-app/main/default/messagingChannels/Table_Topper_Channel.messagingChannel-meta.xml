@@ -12,6 +12,17 @@
         <response>Text STOP to opt out of further messages.</response>
         <type>HelpResponse</type>
     </automatedResponses>
+    <embeddedConfig>
+        <allowedFileTypes>bmp,csv,doc,docx,gif,jpg,pdf,png,tiff,txt,xls,xlsx,xml</allowedFileTypes>
+        <authMode>Auth</authMode>
+        <isAgentAvlCheckEnabled>false</isAgentAvlCheckEnabled>
+        <isAttachmentUploadEnabled>true</isAttachmentUploadEnabled>
+        <isEstimatedWaitTimeEnabled>false</isEstimatedWaitTimeEnabled>
+        <isFallbackMessageEnabled>false</isFallbackMessageEnabled>
+        <isSaveTranscriptEnabled>false</isSaveTranscriptEnabled>
+        <maxFileSize>5</maxFileSize>
+        <verifiedUserJwtExpirationTime>60</verifiedUserJwtExpirationTime>
+    </embeddedConfig>
     <masterLabel>Table Topper Channel</masterLabel>
     <messagingChannelType>EmbeddedMessaging</messagingChannelType>
     <messagingKeywords>
@@ -29,7 +40,7 @@
         <keywordType>Help</keywordType>
         <language>en_US</language>
     </messagingKeywords>
-    <sessionHandlerAsa>Aria</sessionHandlerAsa>
+    <sessionHandlerAsa>Aria2</sessionHandlerAsa>
     <sessionHandlerQueue>Table_Topper_Queue</sessionHandlerQueue>
     <sessionHandlerType>AgentforceServiceAgent</sessionHandlerType>
 </MessagingChannel>

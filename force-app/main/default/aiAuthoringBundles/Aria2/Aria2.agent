@@ -38,8 +38,10 @@ variables:
         description: "The authenticated diner's loyalty tier — populated at session start by get_loyalty_tier from external loyalty program API"
     contact_email: mutable string = ""
         description: "The authenticated diner's email address — populated by get_contact_profile and used for external loyalty lookup"
-    profile_loaded: mutable boolean = False
-        description: "True only when get_contact_profile found a Contact record with a non-blank email — used as a null-safe gate before calling get_loyalty_tier"
+    first_name: mutable string = ""
+        description: "The authenticated diner's first name — populated at session start by get_contact_profile"
+    resolved_contact_id: mutable string = ""
+        description: "Contact ID resolved from ContactId (if linked by flow) or EndUserId fallback — authoritative identity for all subagents"
 
 language:
     default_locale: "en_US"
@@ -52,22 +54,20 @@ start_agent agent_router:
 
     reasoning:
         instructions: ->
-            if @variables.ContactId != "":
+            if @variables.EndUserId != "":
                 run @actions.get_contact_profile
                     with contactId = @variables.ContactId
+                    with endUserId = @variables.EndUserId
+                    set @variables.first_name = @outputs.firstName
                     set @variables.contact_email = @outputs.email
-                    set @variables.profile_loaded = @outputs.profileFound
-            if @variables.profile_loaded == True:
+                    set @variables.resolved_contact_id = @outputs.resolvedContactId
+            if @variables.contact_email != "":
                 run @actions.get_loyalty_tier
                     with contactEmail = @variables.contact_email
                     set @variables.loyalty_tier = @outputs.loyaltyTier
-            if @variables.ContactId != "":
-                | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
-                  The diner is authenticated. Greet them by first name and reference their loyalty tier throughout.
-                  If the diner requests any private action (modify, cancel, booking history, new booking) and ContactId is empty, tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
-            else:
-                | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
-                  Greet the diner generically. If they request any private action (modify, cancel, booking history, new booking), tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
+            | You are a router only. Do NOT answer questions directly. Always transition to a subagent before responding.
+              The subagent you transition to will greet the diner — do not greet here.
+              If the diner requests any private action (modify, cancel, booking history, new booking) and resolved_contact_id is empty, tell them: "To do that I'll need you to be signed in. Please log in to the portal and come back — I'll be here."
             | Route to the most relevant subagent:
               - Actual modification requests (change date, time, party size, special requests), OR diner wants to look up an existing reservation but does not have their booking reference: go to reservation_support
               - How-to or policy questions about the modification process: go to platform_faq
@@ -103,14 +103,16 @@ start_agent agent_router:
             inputs:
                 contactId: string
                     description: "The Contact record Id from @variables.ContactId"
-                    is_required: True
+                    is_required: False
+                endUserId: string
+                    description: "The MessagingEndUser Id — used as fallback when ContactId is not yet linked"
+                    is_required: False
             outputs:
                 firstName: string
                 lastName: string
                 loyaltyTier: string
                 email: string
-                profileFound: object
-                    complex_data_type_name: "lightning__booleanType"
+                resolvedContactId: string
 
         get_loyalty_tier:
             description: "Retrieve the diner's loyalty tier from the external loyalty program API (outside Salesforce)"
@@ -132,17 +134,19 @@ subagent reservation_support:
 
     reasoning:
         instructions: ->
-            if @variables.ContactId == "":
-                | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information.
-            if @variables.ContactId != "" and @variables.booking_reference == "":
+            if @variables.first_name != "":
+                | Begin your very first response with a personal greeting: "Hi {!@variables.first_name}!" Do not greet again in follow-up turns.
+            if @variables.resolved_contact_id == "":
+                | To manage existing reservations you'll need to be signed in. Please log in to the portal and come back — I'll be here. Do NOT ask for the diner's name, email, phone, or any personal information. Do NOT escalate to a human agent. After delivering this message use go_to_agent_router so the diner can ask about something else.
+            if @variables.resolved_contact_id != "" and @variables.booking_reference == "":
                 | No booking reference is on file for this session. Call list_reservations to retrieve the diner's upcoming reservations.
                   The action returns reservationSummaries (pipe-delimited lines: BookingRef|Restaurant|Date|Time|PartySize|Status) and totalCount.
                   If the diner indicated a restaurant or date, confirm: "I found your reservation at [restaurant] on [date] — is that the one you mean?"
                   If multiple matches exist, display each as a short card (nearest date first): "**[BookingRef]** · [Restaurant] · [Date], [Time] · [N] guests" — then ask which one they'd like to manage.
                   Once identified, call get_reservation to fetch full details before making changes.
-            if @variables.ContactId != "" and @variables.booking_reference != "":
+            if @variables.resolved_contact_id != "" and @variables.booking_reference != "":
                 | Booking reference {!@variables.booking_reference} is known. Call get_reservation to fetch current details before making any changes.
-            if @variables.ContactId != "":
+            if @variables.resolved_contact_id != "":
                 | If the diner provides only part of a modification (e.g. party size but not time), ask: "Anything else you'd like to change — date, time, or party size?" Wait for the full picture. Once done, confirm ALL changes together: "I'll update your reservation to [date], [time], [party size]. Shall I go ahead?" Then call modify_reservation ONCE with all fields.
                   Never call modify_reservation mid-conversation before the diner has finished specifying changes.
                   After every successful write: (1) state the booking reference, (2) summarise restaurant/date/time/party size, (3) "A confirmation email has been sent to your email address on file."
@@ -152,20 +156,20 @@ subagent reservation_support:
         actions:
             list_reservations: @actions.list_reservations
                 description: "List all upcoming reservations for this diner when no booking reference is known"
-                with contactId = @variables.ContactId
-                available when @variables.ContactId != ""
+                with contactId = @variables.resolved_contact_id
+                available when @variables.resolved_contact_id != ""
             get_reservation: @actions.get_reservation
                 description: "Look up reservation details by booking reference"
                 with bookingReference = @variables.booking_reference
-                with contactId = @variables.ContactId
+                with contactId = @variables.resolved_contact_id
             modify_reservation: @actions.modify_reservation
                 description: "Modify an existing reservation date, time, or party size"
                 with bookingReference = @variables.booking_reference
-                with contactId = @variables.ContactId
+                with contactId = @variables.resolved_contact_id
                 with newDate = ...
                 with newTime = ...
                 with newPartySize = ...
-                available when @variables.booking_reference != "" and @variables.ContactId != ""
+                available when @variables.booking_reference != "" and @variables.resolved_contact_id != ""
             escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate to a human agent when modification cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router
@@ -235,10 +239,12 @@ subagent cancellation_support:
     description: "Handles reservation cancellation requests — including imperative short forms like 'cancel', 'cancel my booking', 'cancel reservation', 'cancel RES-XXXXXX', and 'I want to cancel'. Confirms cancellation intent, presents any applicable cancellation policies, and processes the cancellation."
     reasoning:
         instructions: ->
-            if @variables.ContactId == "":
+            if @variables.first_name != "":
+                | Begin your very first response with a personal greeting: "Hi {!@variables.first_name}!" Do not greet again in follow-up turns.
+            if @variables.resolved_contact_id == "":
                 | To cancel your reservation you need to be logged in. Please sign in to the diner portal and return to this chat — I'll be here when you're ready.
                   Do not take any further cancellation steps. Ask: "Is there anything else I can help you with?" If yes, use go_to_agent_router. If no, close warmly and end the conversation.
-            if @variables.ContactId != "":
+            if @variables.resolved_contact_id != "":
                 | Help the diner cancel their reservation.
                   On your FIRST response in this subagent only: if the diner's opening message mentions "tonight", "today", or a time implying within 24 hours, include this warning once: "Just so you know, reservations cancelled within 24 hours are subject to a $25 per-person fee." Do NOT include this warning in any turn after the first, even if the diner mentions timing again.
                   Ask for their booking reference if not already known.
@@ -247,7 +253,7 @@ subagent cancellation_support:
                 | The diner holds Platinum loyalty status. They are eligible to cancel reservations of any party size. Proceed normally regardless of party size.
             else:
                 | If the reservation party size is greater than 4, inform the diner: "I'm sorry, cancellations for reservations of more than 4 guests require a Platinum loyalty tier account. I'll connect you with a support agent who can assist." Then use escalate_to_human. Do NOT proceed with cancel_reservation if party size is greater than 4.
-            if @variables.ContactId != "":
+            if @variables.resolved_contact_id != "":
                 | If partySize is 4 or fewer: proceed normally for all diners.
                   If the reservation is within 24 hours of now: confirm the fee applies — "This reservation is within 24 hours. A cancellation fee of $25 per person will apply. Would you like to proceed?" (Only say this if you have NOT already warned them.) If the diner confirms, proceed with cancel_reservation. If the diner declines, confirm the reservation is kept as-is and close warmly. Do NOT automatically transfer to a human agent for 24-hour cancellations.
                   If NOT within 24 hours: ask the diner to confirm cancellation and collect a brief cancellation reason, then proceed.
@@ -258,14 +264,14 @@ subagent cancellation_support:
             get_reservation: @actions.get_reservation
                 description: "Look up reservation details to check 24-hour cancellation window"
                 with bookingReference = @variables.booking_reference
-                with contactId = @variables.ContactId
+                with contactId = @variables.resolved_contact_id
                 available when @variables.booking_reference != ""
             cancel_reservation: @actions.cancel_reservation
                 description: "Cancel a reservation after diner confirmation"
                 with bookingReference = @variables.booking_reference
-                with contactId = @variables.ContactId
+                with contactId = @variables.resolved_contact_id
                 with cancellationReason = ...
-                available when @variables.booking_reference != "" and @variables.ContactId != ""
+                available when @variables.booking_reference != "" and @variables.resolved_contact_id != ""
             escalate_to_human: @utils.transition to @subagent.escalation
                 description: "Escalate to a human agent when cancellation cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router
@@ -515,7 +521,7 @@ subagent escalation:
         actions:
             create_escalation_case: @actions.create_escalation_case
                 description: "Create a support Case before escalating — gives the diner a ticket number and links the session"
-                with contactId = @variables.ContactId
+                with contactId = @variables.resolved_contact_id
                 with bookingReference = @variables.booking_reference
                 with messagingSessionId = @variables.RoutableId
                 with issueDescription = ...
@@ -604,9 +610,11 @@ subagent booking_support:
 
     reasoning:
         instructions: ->
-            if @variables.ContactId == "":
+            if @variables.first_name != "":
+                | Begin your very first response with a personal greeting: "Hi {!@variables.first_name}!" Do not greet again in follow-up turns.
+            if @variables.resolved_contact_id == "":
                 | To book a reservation I'll need you to be signed in. Please log in to the portal and come back — I'll be here when you're ready.
-            if @variables.ContactId != "":
+            if @variables.resolved_contact_id != "":
                 | Help the diner book a new reservation. The diner is already identified — do NOT ask for their name, email, phone, or any personal information.
                   Collect: restaurant name, desired date, desired time, party size. Special requests are optional.
                   Confirm all details before calling create_reservation: "I'll book a table for [N] at [Restaurant] on [Date] at [Time]. Shall I go ahead?"
@@ -617,13 +625,13 @@ subagent booking_support:
         actions:
             create_reservation: @actions.create_reservation
                 description: "Create a new confirmed reservation for the authenticated diner"
-                with contactId = @variables.ContactId
+                with contactId = @variables.resolved_contact_id
                 with restaurantName = ...
                 with reservationDate = ...
                 with reservationTime = ...
                 with partySize = ...
                 with specialRequests = ...
-                available when @variables.ContactId != ""
+                available when @variables.resolved_contact_id != ""
             escalate_to_human: @utils.escalate
                 description: "Escalate to a human agent when booking cannot be completed automatically."
             go_to_agent_router: @utils.transition to @subagent.agent_router

@@ -1,0 +1,14 @@
+{
+  "required" : [ "contactEmail" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "contactEmail" : {
+      "title" : "Contact Email",
+      "description" : "The email address of the authenticated diner",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

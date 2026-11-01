@@ -1,0 +1,21 @@
+{
+  "required" : [ "city" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "city" : {
+      "title" : "City",
+      "description" : "City name to search, e.g. 'Bellevue' or 'Seattle'",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "state" : {
+      "title" : "State",
+      "description" : "Optional state abbreviation to narrow results, e.g. 'WA'",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
