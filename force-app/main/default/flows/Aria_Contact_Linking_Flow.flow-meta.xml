@@ -39,9 +39,15 @@
             <name>agentLabel</name>
         </inputParameters>
         <inputParameters>
+            <name>queueId</name>
+            <value>
+                <elementReference>Get_Queue.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
             <name>queueLabel</name>
             <value>
-                <stringValue>Table_Topper_Queue</stringValue>
+                <stringValue>Table Topper Queue</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
@@ -98,7 +104,10 @@
             <name>digitalWorkerId</name>
         </inputParameters>
         <inputParameters>
-            <name>queueId</name>
+            <name>isQueueVariable</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
         </inputParameters>
         <inputParameters>
             <name>agentId</name>
@@ -181,6 +190,35 @@
         </value>
     </processMetadataValues>
     <processType>RoutingFlow</processType>
+    <recordLookups>
+        <name>Get_Queue</name>
+        <label>Get Routing Queue</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Session</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DeveloperName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Table_Topper_Queue</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Queue</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Group</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordLookups>
         <name>Get_End_User</name>
         <label>Get Messaging End User</label>
@@ -290,7 +328,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Session</targetReference>
+            <targetReference>Get_Queue</targetReference>
         </connector>
     </start>
     <status>Active</status>
