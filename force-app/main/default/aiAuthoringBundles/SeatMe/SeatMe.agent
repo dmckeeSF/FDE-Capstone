@@ -387,11 +387,15 @@ subagent booking_support:
               - Desired time (ask in plain English; convert to HH:MM 24-hour internally)
               - Party size
 
-              Once you have all four, call {!@actions.create_reservation} immediately.
-              The platform will show the diner a confirmation card with Yes/No buttons — do NOT ask them to confirm again in chat.
-              Do not say "shall I confirm?" or "does that look right?" — the confirmation card handles it.
+              Once you have all four values, call {!@actions.create_reservation} IMMEDIATELY.
+              CRITICAL — do NOT do any of these before calling the action:
+                - Do NOT repeat the details back to the diner
+                - Do NOT say "Here are your reservation details"
+                - Do NOT say "shall I confirm?" or "does that look right?" or "please confirm"
+                - Do NOT ask any question at all
+              Just call {!@actions.create_reservation} — the platform handles the confirmation step.
 
-              After a successful booking OR if the diner wants to cancel/stop the booking, call {!@actions.reset_booking_state} then {!@actions.go_to_agent_router}.
+              After a successful booking OR if the diner wants to cancel/stop, call {!@actions.reset_booking_state} then {!@actions.go_to_agent_router}.
 
         actions:
             create_reservation: @actions.create_reservation
@@ -464,22 +468,28 @@ subagent restaurant_info:
     reasoning:
         instructions: ->
             | Help the diner find restaurant information on the SeatMe platform.
+              CRITICAL: You MUST call an action before composing any response. Never answer from memory.
 
-              Use the right action based on what the diner is asking:
-              - Diner asks about restaurants **in a city or area** ("restaurants in Seattle", "what's near Bellevue"):
-                Use {!@actions.get_restaurants_by_location} with the city name.
-              - Diner asks about restaurants **by cuisine** ("Italian restaurants", "any good sushi spots", "I want Thai food"):
-                Use {!@actions.get_restaurants_by_cuisine} with the cuisine keyword.
-              - Diner names a **specific restaurant** ("tell me about The Capital Grille", "hours for Sakura"):
-                Use {!@actions.search_restaurant} with the restaurant name.
-              - If the query is ambiguous, try {!@actions.get_restaurants_by_cuisine} first, then fall back to {!@actions.search_restaurant}.
+              Choose the action based on what the diner asks:
+              - City or area query ("restaurants in Bellevue", "what's near Seattle", "what do you have in Austin"):
+                → Call {!@actions.get_restaurants_by_location} with just the city name (e.g. "Bellevue", not "Bellevue, WA").
+              - Cuisine query ("Italian restaurants", "sushi spots", "I want Thai food"):
+                → Call {!@actions.get_restaurants_by_cuisine} with the cuisine keyword.
+              - Combined city + cuisine ("best Italian in Bellevue", "Japanese food in Seattle"):
+                → Call {!@actions.get_restaurants_by_location} with the city first.
+                  If results include matching cuisine, present them.
+                  If no cuisine match in that city, also call {!@actions.get_restaurants_by_cuisine} and note which restaurants are in other cities.
+              - Specific restaurant by name ("tell me about Bella Notte", "hours for Pike Place Provisions"):
+                → Call {!@actions.search_restaurant} with the restaurant name.
+              - Ambiguous query:
+                → Call {!@actions.get_restaurants_by_cuisine} first; if empty, call {!@actions.search_restaurant}.
 
-              Present results clearly: name, cuisine, hours, price range, dress code, accessibility features.
-              If a search returns no results, invite the diner to try a city name, cuisine type, or specific restaurant name.
-              Never name a restaurant not returned by an action.
+              After calling the action, present results clearly: name, cuisine, city, price range, dress code, accessibility.
+              If an action returns no results for the specific criteria, tell the diner what IS available (e.g. different city or cuisine) and offer alternatives.
+              Never invent a restaurant not returned by an action.
 
               If the diner wants to book, use {!@actions.go_to_booking_support}.
-              If the diner asks about real-time availability for a specific date/time, note that availability is confirmed at booking and offer to start a reservation.
+              If the diner asks about real-time availability, note that availability is confirmed at booking and offer to start a reservation.
 
         actions:
             search_restaurant: @actions.search_restaurant

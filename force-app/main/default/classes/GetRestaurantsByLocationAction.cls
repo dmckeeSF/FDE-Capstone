@@ -46,20 +46,24 @@ public with sharing class GetRestaurantsByLocationAction {
             return res;
         }
 
-        String cityTrim = req.city.trim();
+        // Strip "City, State" format the LLM sometimes passes (e.g. "Bellevue, WA")
+        String cityRaw  = req.city.trim();
+        String cityTrim = cityRaw.contains(',') ? cityRaw.split(',')[0].trim() : cityRaw;
+        String cityLike = '%' + cityTrim + '%';
         res.citySearched = cityTrim;
 
         List<Account> restaurants;
         if (String.isNotBlank(req.state)) {
-            String stateTrim = req.state.trim();
+            String stateTrim = req.state.trim().split(',')[0].trim();
+            String stateLike = '%' + stateTrim + '%';
             restaurants = [
                 SELECT Name, Cuisine_Type__c, Price_Range__c,
                        Accessibility_Info__c, ShippingCity, ShippingState
                 FROM Account
                 WHERE RecordType.DeveloperName = 'Restaurant'
                   AND Is_Active__c = true
-                  AND ShippingCity = :cityTrim
-                  AND ShippingState = :stateTrim
+                  AND ShippingCity LIKE :cityLike
+                  AND ShippingState LIKE :stateLike
                 ORDER BY Name
             ];
         } else {
@@ -69,7 +73,7 @@ public with sharing class GetRestaurantsByLocationAction {
                 FROM Account
                 WHERE RecordType.DeveloperName = 'Restaurant'
                   AND Is_Active__c = true
-                  AND ShippingCity = :cityTrim
+                  AND ShippingCity LIKE :cityLike
                 ORDER BY Name
             ];
         }

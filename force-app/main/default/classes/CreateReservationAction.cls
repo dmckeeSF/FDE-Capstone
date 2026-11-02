@@ -8,14 +8,42 @@ public without sharing class CreateReservationAction {
             if (String.isNotBlank(req.restaurantName)) names.add(req.restaurantName);
         }
 
-        Map<String, Id> restaurantIdByName = new Map<String, Id>();
-        for (Account a : [
+        // Fetch all active restaurants and resolve each request name via LIKE (fuzzy, case-insensitive)
+        List<Account> allRestaurants = [
             SELECT Id, Name
             FROM Account
             WHERE RecordType.DeveloperName = 'Restaurant'
-              AND Name IN :names
-        ]) {
-            restaurantIdByName.put(a.Name, a.Id);
+              AND Is_Active__c = true
+            ORDER BY Name
+        ];
+        Map<String, Id> restaurantIdByName = new Map<String, Id>();
+        for (String inputName : names) {
+            String term = inputName.toLowerCase().trim();
+            Id matchId = null;
+
+            // Pass 1: full contains match
+            for (Account a : allRestaurants) {
+                if (a.Name.toLowerCase().contains(term)) { matchId = a.Id; break; }
+            }
+
+            // Pass 2: word-level prefix match (handles typos like "Belle" vs "Bella")
+            if (matchId == null) {
+                for (Account a : allRestaurants) {
+                    String aLower = a.Name.toLowerCase();
+                    Boolean hit = false;
+                    for (String iw : term.split(' ')) {
+                        if (iw.length() < 4) continue;
+                        String pfx = iw.left(4);
+                        for (String aw : aLower.split(' ')) {
+                            if (aw.startsWith(pfx)) { hit = true; break; }
+                        }
+                        if (hit) break;
+                    }
+                    if (hit) { matchId = a.Id; break; }
+                }
+            }
+
+            if (matchId != null) restaurantIdByName.put(inputName, matchId);
         }
 
         // Build all reservation records and track which request each maps to
