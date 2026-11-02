@@ -58,23 +58,23 @@ public with sharing class GetRestaurantsByLocationAction {
             String stateLike = '%' + stateTrim + '%';
             restaurants = [
                 SELECT Name, Cuisine_Type__c, Price_Range__c,
-                       Accessibility_Info__c, ShippingCity, ShippingState
+                       Accessibility_Info__c, Star_Rating__c, ShippingCity, ShippingState
                 FROM Account
                 WHERE RecordType.DeveloperName = 'Restaurant'
                   AND Is_Active__c = true
                   AND ShippingCity LIKE :cityLike
                   AND ShippingState LIKE :stateLike
-                ORDER BY Name
+                ORDER BY Star_Rating__c DESC NULLS LAST, Name ASC
             ];
         } else {
             restaurants = [
                 SELECT Name, Cuisine_Type__c, Price_Range__c,
-                       Accessibility_Info__c, ShippingCity, ShippingState
+                       Accessibility_Info__c, Star_Rating__c, ShippingCity, ShippingState
                 FROM Account
                 WHERE RecordType.DeveloperName = 'Restaurant'
                   AND Is_Active__c = true
                   AND ShippingCity LIKE :cityLike
-                ORDER BY Name
+                ORDER BY Star_Rating__c DESC NULLS LAST, Name ASC
             ];
         }
 
@@ -88,16 +88,11 @@ public with sharing class GetRestaurantsByLocationAction {
 
         List<String> lines = new List<String>();
         for (Account a : restaurants) {
-            String line = a.Name;
-            if (String.isNotBlank(a.Cuisine_Type__c)) {
-                line += ' — ' + a.Cuisine_Type__c;
-            }
-            if (String.isNotBlank(a.Price_Range__c)) {
-                line += ', ' + a.Price_Range__c;
-            }
-            if (String.isNotBlank(a.Accessibility_Info__c)) {
-                line += '. ' + a.Accessibility_Info__c;
-            }
+            String stars = a.Star_Rating__c != null ? ' (★' + String.valueOf(Integer.valueOf(a.Star_Rating__c)) + '/5)' : '';
+            String line = a.Name + stars;
+            if (String.isNotBlank(a.Cuisine_Type__c)) line += ' — ' + a.Cuisine_Type__c;
+            if (String.isNotBlank(a.Price_Range__c))  line += ', ' + a.Price_Range__c;
+            if (String.isNotBlank(a.Accessibility_Info__c)) line += '. ' + a.Accessibility_Info__c;
             lines.add(line);
         }
 

@@ -48,12 +48,12 @@ public without sharing class GetRestaurantsByCuisineAction {
 
         List<Account> restaurants = [
             SELECT Name, Cuisine_Type__c, Price_Range__c,
-                   Accessibility_Info__c, ShippingCity, ShippingState
+                   Accessibility_Info__c, Star_Rating__c, ShippingCity, ShippingState
             FROM Account
             WHERE RecordType.DeveloperName = 'Restaurant'
               AND Is_Active__c = true
               AND Cuisine_Type__c LIKE :term
-            ORDER BY Name
+            ORDER BY Star_Rating__c DESC NULLS LAST, Name ASC
         ];
 
         res.restaurantCount = restaurants.size();
@@ -66,7 +66,8 @@ public without sharing class GetRestaurantsByCuisineAction {
 
         List<String> lines = new List<String>();
         for (Account a : restaurants) {
-            String line = a.Name;
+            String stars = a.Star_Rating__c != null ? ' (★' + String.valueOf(Integer.valueOf(a.Star_Rating__c)) + '/5)' : '';
+            String line = a.Name + stars;
             if (String.isNotBlank(a.Cuisine_Type__c)) line += ' — ' + a.Cuisine_Type__c;
             if (String.isNotBlank(a.Price_Range__c))  line += ', ' + a.Price_Range__c;
             if (String.isNotBlank(a.ShippingCity))    line += ' (' + a.ShippingCity + (String.isNotBlank(a.ShippingState) ? ', ' + a.ShippingState : '') + ')';

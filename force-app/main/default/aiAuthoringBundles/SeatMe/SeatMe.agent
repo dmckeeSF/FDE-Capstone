@@ -471,36 +471,44 @@ subagent restaurant_info:
               CRITICAL: You MUST call an action before composing any response. Never answer from memory.
 
               Choose the action based on what the diner asks:
-              - City or area query ("restaurants in Bellevue", "what's near Seattle", "what do you have in Austin"):
-                → Call {!@actions.get_restaurants_by_location} with just the city name (e.g. "Bellevue", not "Bellevue, WA").
-              - Cuisine query ("Italian restaurants", "sushi spots", "I want Thai food"):
+              - "Best", "top", "highest rated", or "recommended" restaurants:
+                → Call {!@actions.search_restaurants} — results are sorted by star rating automatically.
+                  Pass any additional filters (city, cuisine, price range, dress code, party size) that the diner mentioned.
+              - Multi-criteria query (combines city + cuisine, or includes price range, dress code, or party size):
+                → Call {!@actions.search_restaurants} with all the relevant filter inputs.
+              - City or area query only ("restaurants in Bellevue", "what's in Seattle"):
+                → Call {!@actions.get_restaurants_by_location} with just the city name (not "City, State").
+              - Cuisine query only ("Italian restaurants", "sushi spots"):
                 → Call {!@actions.get_restaurants_by_cuisine} with the cuisine keyword.
-              - Combined city + cuisine ("best Italian in Bellevue", "Japanese food in Seattle"):
-                → Call {!@actions.get_restaurants_by_location} with the city first.
-                  If results include matching cuisine, present them.
-                  If no cuisine match in that city, also call {!@actions.get_restaurants_by_cuisine} and note which restaurants are in other cities.
-              - Specific restaurant by name ("tell me about Bella Notte", "hours for Pike Place Provisions"):
+              - Specific restaurant by name ("tell me about Bella Notte", "hours for Pike Place"):
                 → Call {!@actions.search_restaurant} with the restaurant name.
               - Ambiguous query:
                 → Call {!@actions.get_restaurants_by_cuisine} first; if empty, call {!@actions.search_restaurant}.
 
-              After calling the action, present results clearly: name, cuisine, city, price range, dress code, accessibility.
-              If an action returns no results for the specific criteria, tell the diner what IS available (e.g. different city or cuisine) and offer alternatives.
+              After calling the action, present results clearly: name, star rating (if available), cuisine, city, price range, dress code, party capacity.
+              If an action returns no results for the specific criteria, tell the diner what IS available and offer alternatives.
               Never invent a restaurant not returned by an action.
 
               If the diner wants to book, use {!@actions.go_to_booking_support}.
               If the diner asks about real-time availability, note that availability is confirmed at booking and offer to start a reservation.
 
         actions:
+            search_restaurants: @actions.search_restaurants
+                description: "Multi-criteria restaurant search — use for 'best', 'top rated', or queries that combine city + cuisine, price range, dress code, or party size requirements"
+                with city = ...
+                with cuisineType = ...
+                with priceRange = ...
+                with dressCode = ...
+                with minPartySize = ...
             search_restaurant: @actions.search_restaurant
                 description: "Look up a specific restaurant by name — use when the diner mentions a restaurant by name"
                 with restaurantNames = ...
             get_restaurants_by_location: @actions.get_restaurants_by_location
-                description: "Find all restaurants in a city or area — use for city/location queries"
+                description: "Find all restaurants in a city or area — use for city/location queries without other filters"
                 with city = ...
                 with state = ...
             get_restaurants_by_cuisine: @actions.get_restaurants_by_cuisine
-                description: "Find all restaurants by cuisine type — use for cuisine or food-preference queries"
+                description: "Find all restaurants by cuisine type — use for cuisine-only queries without other filters"
                 with cuisineType = ...
             go_to_booking_support: @utils.transition to @subagent.booking_support
                 description: "Book a table at one of the restaurants shown"
@@ -511,6 +519,31 @@ subagent restaurant_info:
             go_to_agent_router: @utils.transition to @subagent.agent_router
 
     actions:
+        search_restaurants:
+            description: "Multi-criteria restaurant search — filters by city, cuisine, price range, dress code, or party size. Results sorted by star rating descending."
+            target: "apex://SearchRestaurantsAction"
+            include_in_progress_indicator: True
+            progress_indicator_message: "Searching restaurants..."
+            inputs:
+                city: string
+                    description: "City to filter by (partial match)"
+                cuisineType: string
+                    description: "Cuisine type keyword (e.g. Italian, Japanese)"
+                priceRange: string
+                    description: "Price range symbol: $, $$, $$$, or $$$$"
+                dressCode: string
+                    description: "Dress code keyword (e.g. Casual, Smart Casual, Formal)"
+                minPartySize: object
+                    complex_data_type_name: "lightning__integerType"
+                    description: "Minimum party capacity required"
+            outputs:
+                restaurantList: string
+                restaurantCount: object
+                    complex_data_type_name: "lightning__integerType"
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
+
         search_restaurant:
             description: "Looks up a restaurant by name and returns its details"
             target: "apex://GetRestaurantInfoAction"
@@ -527,6 +560,8 @@ subagent restaurant_info:
                 dressCode: string
                 accessibilityInfo: string
                 maxPartySize: object
+                    complex_data_type_name: "lightning__integerType"
+                starRating: object
                     complex_data_type_name: "lightning__integerType"
                 isActive: object
                     complex_data_type_name: "lightning__booleanType"
@@ -618,7 +653,7 @@ subagent reservation_support:
                     is_user_input: False
             outputs:
                 reservationSummaries: string
-                    description: "Pipe-delimited list of reservation summaries (BookingRef|Restaurant|Date|Time|PartySize|Status)"
+                    description: "Pipe-delimited list of reservation summaries (BookingRef|Restaurant|Date|Time|PartySize|Status|CancellationPolicy)"
                 totalCount: object
                     complex_data_type_name: "lightning__integerType"
 
@@ -662,14 +697,19 @@ subagent cancellation_support:
             | You help authenticated diners cancel a reservation.
               Step 1 — If {!@variables.reservations_loaded} is False, call list_reservations to show the diner their upcoming reservations. Set {!@variables.reservations_loaded} = True.
               Step 2 — Confirm which reservation to cancel. Ask for the booking reference if not already known.
-              Step 3 — Party size policy check:
+                  Once identified, find the matching line in {!@variables.reservation_summaries} (format: BookingRef|Restaurant|Date|Time|PartySize|Status|CancellationPolicy).
+                  Note: field 5 = party size, field 7 = the restaurant's cancellation policy (index 6, may be blank).
+              Step 3 — Restaurant cancellation policy:
+                  If field 7 (CancellationPolicy) is not blank:
+                      Present it to the diner: "Before we proceed — here is [RestaurantName]'s cancellation policy: [CancellationPolicy text]."
+              Step 4 — Platform large-party check:
                   If the reservation party size is greater than 4 AND {!@variables.loyalty_tier} is not "Platinum":
-                      Inform the diner: "I can see this reservation is for a party larger than 4 guests. Per our cancellation policy, large-party cancellations may be subject to additional fees or require special handling. You're welcome to proceed, or I can connect you with a member of our team."
+                      Inform the diner: "I can see this reservation is for a party larger than 4 guests. Per our platform policy, large-party cancellations may be subject to additional fees or require special handling. You're welcome to proceed, or I can connect you with a member of our team."
                       Let the diner decide — offer to proceed with cancellation OR escalate to a human. Only escalate if the diner explicitly asks for human assistance.
-                  If the diner is Platinum or party size is 4 or fewer, proceed without the policy disclosure.
-              Step 4 — Inform the diner of the standard 24-hour cancellation fee policy.
-              Step 5 — Call cancel_reservation once the diner confirms.
-              Step 6 — Confirm cancellation and ask if anything else is needed.
+                  If the diner is Platinum or party size is 4 or fewer, proceed without this disclosure.
+              Step 5 — Inform the diner of the platform 24-hour cancellation fee notice.
+              Step 6 — Call cancel_reservation once the diner confirms.
+              Step 7 — Confirm cancellation and ask if anything else is needed.
               If the diner asks to modify instead of cancel, transition to reservation_support.
               If the diner wants human help, transition to escalation.
               After a successful cancellation or if the diner stops the flow, call {!@actions.reset_cancellation_state} then {!@actions.go_to_agent_router}.

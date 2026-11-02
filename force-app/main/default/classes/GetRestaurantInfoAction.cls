@@ -20,6 +20,7 @@ public without sharing class GetRestaurantInfoAction {
                    Dress_Code__c,
                    Accessibility_Info__c,
                    Max_Party_Size__c,
+                   Star_Rating__c,
                    Is_Active__c
             FROM Account
             WHERE RecordType.DeveloperName = 'Restaurant'
@@ -52,6 +53,9 @@ public without sharing class GetRestaurantInfoAction {
             dto.maxPartySize         = (match.Max_Party_Size__c != null)
                                          ? Integer.valueOf(match.Max_Party_Size__c)
                                          : null;
+            dto.starRating           = (match.Star_Rating__c != null)
+                                         ? Integer.valueOf(match.Star_Rating__c)
+                                         : null;
             dto.isActive             = match.Is_Active__c;
             results.add(dto);
         }
@@ -67,6 +71,7 @@ public without sharing class GetRestaurantInfoAction {
         @InvocableVariable public String  dressCode;
         @InvocableVariable public String  accessibilityInfo;
         @InvocableVariable public Integer maxPartySize;
+        @InvocableVariable public Integer starRating;
         @InvocableVariable public Boolean isActive;
     }
 }

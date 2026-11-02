@@ -24,6 +24,7 @@ public without sharing class GetReservationsForContactAction {
             }
             List<Reservation__c> reservations = [
                 SELECT Booking_Reference__c, Restaurant__r.Name,
+                       Restaurant__r.Cancellation_Policy__c,
                        Reservation_Date__c, Reservation_Time__c,
                        Party_Size__c, Status__c
                 FROM Reservation__c
@@ -42,7 +43,10 @@ public without sharing class GetReservationsForContactAction {
                     r.Reservation_Date__c  + '|' +
                     r.Reservation_Time__c  + '|' +
                     String.valueOf(r.Party_Size__c) + '|' +
-                    r.Status__c
+                    r.Status__c + '|' +
+                    (String.isNotBlank(r.Restaurant__r.Cancellation_Policy__c)
+                        ? r.Restaurant__r.Cancellation_Policy__c
+                        : '')
                 );
             }
             dto.reservationSummaries = String.join(summaries, '\n');
