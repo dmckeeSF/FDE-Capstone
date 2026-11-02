@@ -40,21 +40,7 @@
     "id" : "0f37a8c9-63ba-4b7d-90b8-98d662bad2ee",
     "label" : "Default",
     "regions" : [ {
-      "components" : [ {
-        "componentAttributes" : {
-          "clientVersion" : "WebV2",
-          "deploymentName" : "Aria_3_Embedded_Service",
-          "hideChatButtonOnLoad" : "Default",
-          "isExpSiteAuthMode" : false,
-          "mobileDeploymentName" : "",
-          "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
-          "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWAria3Embedde1793574339872"
-        },
-        "componentName" : "experience_messaging:embeddedMessaging",
-        "id" : "01a057cd-2cf1-4979-825e-7fe2d3e088ec",
-        "renditionMap" : { },
-        "type" : "component"
-      } ],
+      "components" : [ ],
       "id" : "77d4f2b6-3d70-4314-b864-642525cac709",
       "regionName" : "customHeader",
       "type" : "region"

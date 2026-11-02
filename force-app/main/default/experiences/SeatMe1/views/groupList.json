@@ -1,0 +1,40 @@
+{
+  "appPageId" : "7f1f2cbb-a2e1-4220-a672-06aadb695b2b",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "6bc67751-5bb4-4b44-aa47-187e28237d46",
+  "label" : "Group List",
+  "regions" : [ {
+    "id" : "92084301-0fcd-4ed2-86db-6b02eb6c08af",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "richTextValue" : "             <h1 style=\"text-align: center;\">                 <b style=\"font-size: 20px; color: #1e2443;\">Group List</b>             </h1>             "
+      },
+      "componentName" : "forceCommunity:richTextInline",
+      "id" : "a6dd2b3c-3802-41db-bbda-60bdf3ed41fd",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    }, {
+      "componentAttributes" : { },
+      "componentName" : "forceCommunity:groupObjectHome",
+      "id" : "b1ed4304-1bc6-4182-b9ca-c6f6f9159be4",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "af7433e5-36f7-4325-9841-af6074fd1c06",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "f19398ec-9a5f-4ae1-b9f1-3ad35905eae9",
+    "regionName" : "footer",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "list-0F9"
+}

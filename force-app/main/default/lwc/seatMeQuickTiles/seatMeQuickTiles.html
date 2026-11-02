@@ -1,0 +1,15 @@
+<template>
+    <div class="tiles-section">
+        <ul class="tiles-grid" role="list">
+            <template for:each={tiles} for:item="tile">
+                <li key={tile.id} class="tile-card" onclick={tile.handler} role="button" tabindex="0"
+                    onkeydown={handleKeyDown} data-action={tile.action}
+                    aria-label={tile.label}>
+                    <span class="tile-icon" aria-hidden="true">{tile.icon}</span>
+                    <span class="tile-label">{tile.label}</span>
+                    <span class="tile-desc">{tile.desc}</span>
+                </li>
+            </template>
+        </ul>
+    </div>
+</template>

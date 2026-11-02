@@ -18,7 +18,7 @@
         <shouldShowTypingIndicators>false</shouldShowTypingIndicators>
         <shouldStartNewLineOnEnter>false</shouldStartNewLineOnEnter>
     </embeddedServiceMessagingChannel>
-    <isEnabled>true</isEnabled>
+    <isEnabled>false</isEnabled>
     <isTermsAndConditionsEnabled>false</isTermsAndConditionsEnabled>
     <isTermsAndConditionsRequired>false</isTermsAndConditionsRequired>
     <masterLabel>Table Topper Embedded Service Deployment</masterLabel>

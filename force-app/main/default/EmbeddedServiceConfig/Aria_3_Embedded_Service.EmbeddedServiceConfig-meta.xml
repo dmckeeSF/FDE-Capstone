@@ -19,7 +19,7 @@
         <shouldShowTypingIndicators>false</shouldShowTypingIndicators>
         <shouldStartNewLineOnEnter>false</shouldStartNewLineOnEnter>
     </embeddedServiceMessagingChannel>
-    <isEnabled>true</isEnabled>
+    <isEnabled>false</isEnabled>
     <isTermsAndConditionsEnabled>false</isTermsAndConditionsEnabled>
     <isTermsAndConditionsRequired>false</isTermsAndConditionsRequired>
     <masterLabel>Aria 3 Embedded Service</masterLabel>

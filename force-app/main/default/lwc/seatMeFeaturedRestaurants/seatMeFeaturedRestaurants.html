@@ -1,0 +1,41 @@
+<template>
+    <div class="restaurants-section">
+        <div class="section-header">
+            <h2 class="section-title">Featured Restaurants</h2>
+            <p class="section-subtitle">Discover the best dining experiences on SeatMe</p>
+        </div>
+
+        <template if:true={isLoading}>
+            <div class="loading-row">
+                <template for:each={placeholders} for:item="p">
+                    <div key={p} class="restaurant-card skeleton"></div>
+                </template>
+            </div>
+        </template>
+
+        <template if:true={hasRestaurants}>
+            <ul class="restaurants-grid" role="list">
+                <template for:each={restaurants} for:item="r">
+                    <li key={r.id} class="restaurant-card" onclick={handleCardClick}
+                        data-id={r.id} role="button" tabindex="0"
+                        onkeydown={handleKeyDown} aria-label={r.name}>
+                        <div class="card-color-bar"></div>
+                        <div class="card-body">
+                            <h3 class="card-name">{r.name}</h3>
+                            <span class="card-cuisine">{r.cuisineType}</span>
+                            <div class="card-meta">
+                                <span class="card-hours">{r.hours}</span>
+                                <span class="card-price">{r.priceRange}</span>
+                            </div>
+                            <button class="card-cta" aria-label={r.bookLabel}>Book Now</button>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+
+        <template if:true={isEmpty}>
+            <p class="empty-state">No featured restaurants available right now.</p>
+        </template>
+    </div>
+</template>

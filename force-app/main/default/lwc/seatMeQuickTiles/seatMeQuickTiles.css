@@ -1,0 +1,70 @@
+.tiles-section {
+    background-color: #111118;
+    padding: 2.5rem 2rem;
+}
+
+.tiles-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    list-style: none;
+    padding: 0;
+}
+
+.tile-card {
+    background-color: #1c1c26;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tile-card:hover {
+    border-color: #e31837;
+    background-color: #22222e;
+    transform: translateY(-3px);
+}
+
+.tile-card:focus {
+    outline: 2px solid #e31837;
+    outline-offset: 2px;
+}
+
+.tile-icon {
+    font-size: 2.25rem;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.tile-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.1px;
+}
+
+.tile-desc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .tiles-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .tiles-grid {
+        grid-template-columns: 1fr;
+    }
+}

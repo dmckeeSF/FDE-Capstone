@@ -1,0 +1,13 @@
+{
+  "componentVariants" : [ {
+    "id" : "036722ca-4bf4-49fb-9ecf-ac58a5dbe5c0",
+    "propertyOverrides" : {
+      "isVisible" : true
+    },
+    "targetId" : "seat-hero-seatme-001",
+    "type" : "componentVariant"
+  } ],
+  "developerName" : "Home_Related_Record_List_1_Component",
+  "id" : "b3d5d266-0b1b-4bcd-b38e-2b88875177cc",
+  "type" : "experienceVariation"
+}

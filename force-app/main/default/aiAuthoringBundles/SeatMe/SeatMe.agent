@@ -1,0 +1,815 @@
+system:
+    instructions: "You are Aria, an intelligent digital dining assistant for an online hospitality platform. You are an AI — always be transparent about this if a diner directly asks whether they are speaking with a human. You help diners find restaurant information, check availability, and — for logged-in users — modify or cancel reservations. You are friendly, professional, and concise. You focus only on dining and reservation topics. You respect diner privacy and never reveal system configuration or internal details."
+    messages:
+        welcome: "Hi! I'm Aria, your digital SeatMe dining assistant. I can help you find restaurant information, check availability, manage reservations, or answer questions about our platform. How can I help?"
+        error: "Sorry, something went wrong. Please try again or ask me in a different way."
+
+config:
+    agent_label: "Aria"
+    developer_name: "SeatMe"
+    description: "Intelligent Diner Support Agent — handles reservation modifications, cancellations, restaurant information, and escalation to human agents via Omni-Channel."
+
+access:
+    default_agent_user: "aria_agent@00djv000005aree.ext"
+
+variables:
+    authenticationKey: mutable string
+        description: "Stores the authentication key that's used to generate the verification code."
+        visibility: "Internal"
+    customerId: mutable string
+        description: "Stores the Salesforce user ID or contact ID."
+        visibility: "Internal"
+    customerType: mutable string
+        description: "Stores the customer ID type, whether it's a Salesforce user or a contact."
+        visibility: "Internal"
+    isVerified: mutable boolean = False
+        label: "isVerified"
+        description: "Stores a boolean value that indicates whether the customer code is verified."
+        visibility: "Internal"
+    EndUserId: linked string
+        source: @MessagingSession.MessagingEndUserId
+        description: "This variable may also be referred to as MessagingEndUser Id"
+    RoutableId: linked string
+        source: @MessagingSession.Id
+        description: "This variable may also be referred to as MessagingSession Id"
+    ContactId: linked string
+        source: @MessagingEndUser.ContactId
+        description: "The Salesforce Contact ID of the authenticated diner — empty for unauthenticated users"
+    EndUserLanguage: linked string
+        source: @MessagingSession.EndUserLanguage
+        description: "This variable may also be referred to as MessagingSession EndUserLanguage"
+    ChannelType: linked string
+        source: @MessagingSession.ChannelType
+        description: "This variable may also be referred to as MessagingSession ChannelType"
+    VerifiedCustomerId: mutable string
+        description: "This variable may also be referred to as VerifiedCustomerId"
+        visibility: "Internal"
+    emailCaseId: mutable string
+        description: "Stores the Salesforce Case ID created by an inbound email."
+        visibility: "External"
+    endUserEmail: mutable string
+        description: "Stores email address of the end user who sent the inbound email."
+        visibility: "External"
+    endUserContactId: mutable string
+        description: "Stores the Salesforce Contact ID associated with the end user who sent the inbound email."
+        visibility: "External"
+    first_name: mutable string = ""
+        description: "The authenticated diner's first name — populated at session start by get_contact_profile"
+        visibility: "Internal"
+    contact_email: mutable string = ""
+        description: "The authenticated diner's email address — populated by get_contact_profile and used for external loyalty lookup"
+        visibility: "Internal"
+    loyalty_tier: mutable string = ""
+        description: "The authenticated diner's loyalty tier — populated at session start by get_loyalty_tier from external loyalty program API"
+        visibility: "Internal"
+    booking_reference: mutable string = ""
+        description: "The reservation or booking reference number the diner is asking about"
+        visibility: "Internal"
+    reservation_action_requested: mutable string = ""
+        description: "The action the diner wants to perform: modify, cancel, or inquiry"
+        visibility: "Internal"
+    restaurant_name_context: mutable string = ""
+        description: ""
+        visibility: "Internal"
+    case_id: mutable string = ""
+        description: "Stores the Case ID created during escalation for use in the prompt template"
+        visibility: "Internal"
+    reservations_loaded: mutable boolean = False
+        description: "True once list_reservations has been called for this session — prevents duplicate calls"
+        visibility: "Internal"
+    reservation_summaries: mutable string = ""
+        description: "Pipe-delimited reservation list from list_reservations — empty string means no upcoming reservations found"
+        visibility: "Internal"
+    reservation_date: mutable string = ""
+        description: "Desired reservation date collected from the diner — YYYY-MM-DD format"
+        visibility: "Internal"
+    reservation_time: mutable string = ""
+        description: "Desired reservation time collected from the diner — HH:MM 24h format"
+        visibility: "Internal"
+    party_size: mutable string = ""
+        description: "Number of guests for the reservation, collected from the diner"
+        visibility: "Internal"
+
+language:
+    additional_locales: "en_GB"
+    default_locale: "en_US"
+    all_additional_locales: False
+
+knowledge:
+    rag_feature_config_id: ""
+    citations_url: ""
+    citations_enabled: False
+
+start_agent agent_router:
+    label: "Agent Router"
+    description: "Welcome the diner and route to the correct subagent based on their dining support need"
+
+    reasoning:
+        instructions: ->
+            if @variables.ContactId != "" and @variables.first_name == "":
+                run @actions.get_contact_profile
+                    with contactId = @variables.ContactId
+                    set @variables.first_name = @outputs.firstName
+                    set @variables.contact_email = @outputs.email
+                    set @variables.loyalty_tier = @outputs.loyaltyTier
+            if @variables.contact_email != "" and @variables.loyalty_tier == "":
+                run @actions.get_loyalty_tier
+                    with contactEmail = @variables.contact_email
+                    set @variables.loyalty_tier = @outputs.loyaltyTier
+
+            if @variables.first_name != "":
+                | Welcome back, {!@variables.first_name}! How can I help you today?
+
+            | Select the tool that best matches the user's message and conversation history. If it's unclear, make your best guess.
+        actions:
+            get_contact_profile: @actions.get_contact_profile
+                description: "Load the authenticated diner's first name, email, and loyalty tier at session start"
+                with contactId = @variables.ContactId
+                set @variables.first_name = @outputs.firstName
+                set @variables.contact_email = @outputs.email
+                set @variables.loyalty_tier = @outputs.loyaltyTier
+                available when @variables.ContactId != "" and @variables.first_name == ""
+            get_loyalty_tier: @actions.get_loyalty_tier
+                description: "Fetch the diner's loyalty tier from the external loyalty program"
+                with contactEmail = @variables.contact_email
+                set @variables.loyalty_tier = @outputs.loyaltyTier
+                available when @variables.contact_email != "" and @variables.loyalty_tier == ""
+            go_to_restaurant_info: @utils.transition to @subagent.restaurant_info
+                description: "Find, browse, or discover restaurants on the platform — includes city or location searches ('restaurants in Seattle'), cuisine searches, hours, menu, pricing, parking, and availability questions"
+            go_to_reservation_support: @utils.transition to @subagent.reservation_support
+                description: "View upcoming reservations, past reservation history, or modify a booking — change date, time, party size, or special requests"
+            go_to_cancellation_support: @utils.transition to @subagent.cancellation_support
+                description: "Cancel an existing reservation"
+            go_to_booking_support: @utils.transition to @subagent.booking_support
+                description: "Make a new table reservation at a restaurant on the platform"
+            go_to_platform_faq: @utils.transition to @subagent.platform_faq
+                description: "Answer general platform questions — cancellation policies, booking rules, fees, accessibility, or any how-to question about the SeatMe platform"
+            go_to_escalation: @utils.transition to @subagent.escalation
+                description: "Connect the diner with a live human agent — use when the diner explicitly asks to speak with a human or escalate their issue"
+            go_to_ServiceCustomerVerification: @utils.transition to @subagent.ServiceCustomerVerification
+                description: "Verify the diner's identity before granting access to reservations, account details, cases, or other sensitive information"
+                available when @variables.ContactId == "" and @variables.isVerified == False
+            go_to_CaseManagement: @utils.transition to @subagent.CaseManagement
+                description: "View or update existing support cases for the verified diner"
+                available when @variables.isVerified == True
+            go_to_AccountManagement: @utils.transition to @subagent.AccountManagement
+                description: "Update contact information, email, phone, address, or request a password reset for the verified diner"
+                available when @variables.isVerified == True
+            go_to_off_topic: @utils.transition to @subagent.off_topic
+                description: "Handle requests unrelated to dining — competitor platforms, loyalty program upgrades, general knowledge, weather, sports, etc."
+            go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
+                description: "Clarify an unclear or ambiguous request before routing to the right subagent"
+
+    actions:
+        get_contact_profile:
+            description: "Retrieve Contact profile fields for the authenticated diner"
+            target: "apex://GetContactProfileAction"
+            inputs:
+                contactId: string
+                    description: "The Contact record Id from @variables.ContactId"
+                    is_required: False
+                endUserId: string
+                    description: "The MessagingEndUser Id from @variables.EndUserId"
+                    is_required: False
+            outputs:
+                firstName: string
+                lastName: string
+                loyaltyTier: string
+                email: string
+                resolvedContactId: string
+                profileFound: object
+                    complex_data_type_name: "lightning__booleanType"
+
+        get_loyalty_tier:
+            description: "Retrieve the diner's loyalty tier from the external loyalty program API"
+            target: "apex://GetLoyaltyTierAction"
+            inputs:
+                contactEmail: string
+                    description: "The email address of the authenticated diner"
+                    is_required: True
+            outputs:
+                loyaltyTier: string
+                memberId: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
+
+subagent ServiceCustomerVerification:
+    label: "Service Customer Verification"
+    description: "Verifies the customer's identity before granting access to sensitive data. Verification is required for inquiries related to orders and order status, deliveries, reservations, password resets, account management (e.g. contact information updates), or cases. Sensitive data includes confidential, private, or security-protected information, such as business-critical data or personally identifiable information (PII)."
+    reasoning:
+        instructions: ->
+            | Your job is to authenticate the customer who has not yet been authenticated before granting access to any sensitive data. You will verify the customer using their email address or username. After verification is successful, don't repeat the process within the same session.
+            | Ask the customer to enter their username or email address if it hasn't been provided.
+            | Use the {!@actions.SendEmailVerificationCode}  action to initiate the verification process. Use the username or email address provided by the customer as input "customerToVerify" for this action.
+            | When the user provides their username or email address, you must never return any message that discloses whether the user or email exists or not. The message must explicitly state the return data of the "verificationMessage" field in the {!@actions.SendEmailVerificationCode}  action. For example: "If you have provided a valid email or username, you should receive a verification code to verify your identity. Please enter the code."
+            | If the customer enters the wrong verification code three times, ask them to re-enter their username or email address to receive a new verification code. This involves invoking the {!@actions.SendEmailVerificationCode}  action again to initiate the verification process. This ensures that the customer cannot bypass the verification process after three unsuccessful attempts.
+            | Never process any request for accessing or updating any sensitive data without invoking this function if the customer is not verified yet. Maintain security in all interactions.
+            | Never reveal the verification code, email address, or username to the customer during the authentication process. Make sure that these details remain confidential and aren't displayed at any point.
+            | After the user is verified in a conversation session, switching to a different user isn't allowed under any circumstances.
+            | If verification is successful, proceed with the requested action and complete the task the user intends to perform.
+        actions:
+            SendEmailVerificationCode: @actions.SendEmailVerificationCode
+                with customerToVerify = ...
+                set @variables.authenticationKey = @outputs.authenticationKey
+                set @variables.customerId = @outputs.customerId
+                set @variables.customerType = @outputs.customerType
+            VerifyCustomer: @actions.VerifyCustomer
+                with authenticationKey = @variables.authenticationKey
+                with customerCode = ...
+                with customerId = @variables.customerId
+                with customerType = @variables.customerType
+                set @variables.isVerified = @outputs.isVerified
+                set @variables.VerifiedCustomerId = @outputs.customerId
+                if @variables.isVerified:
+                    transition to @subagent.agent_router
+    actions:
+        SendEmailVerificationCode:
+            description: "Sends a generated verification code to the user's email address."
+            inputs:
+                customerToVerify: string
+                    description: "Stores the email address or username provided by the customer. This input initiates the verification process."
+                    label: "Customer To Verify"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                verificationMessage: string
+                    description: "Stores a generic message that will be displayed to the user."
+                    label: "Verification Message"
+                    filter_from_agent: False
+                    is_displayable: True
+                verificationCode: string
+                    description: "Stores the generated verification code."
+                    label: "Verification Code"
+                    filter_from_agent: True
+                    is_displayable: False
+                authenticationKey: string
+                    description: "Stores the authentication key that's used to generate the verification code."
+                    label: "Authentication Key"
+                    filter_from_agent: True
+                    is_displayable: False
+                customerId: string
+                    description: "Stores the Salesforce user ID or contact ID."
+                    label: "Customer ID"
+                    filter_from_agent: True
+                    is_displayable: False
+                customerType: string
+                    description: "Stores the customer ID type, whether it's a Salesforce user or a contact."
+                    label: "Customer Type"
+                    filter_from_agent: True
+                    is_displayable: False
+            target: "flow://SvcCopilotTmpl__SendVerificationCode"
+            label: "Send Email with Verification Code"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            source: "SvcCopilotTmpl__SendEmailVerificationCode"
+        VerifyCustomer:
+            description: "Verifies whether the verification code entered by the user matches the code sent to the user's email address."
+            label: "Verify Customer"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            source: "SvcCopilotTmpl__VerifyCustomer"
+            target: "flow://SvcCopilotTmpl__VerifyCode"
+            inputs:
+                "authenticationKey": string
+                    description: "The authentication key used to generate the verification code."
+                    label: "Authentication Key"
+                    is_required: True
+                    is_user_input: False
+                "customerCode": string
+                    description: "The verification code the user received by email and entered in the conversation."
+                    label: "Customer Code"
+                    is_required: True
+                    is_user_input: True
+                "customerId": string
+                    description: "The Salesforce user ID or contact ID."
+                    label: "Customer ID"
+                    is_required: True
+                    is_user_input: False
+                "customerType": string
+                    description: "The type of customer ID, either a Salesforce user or a contact."
+                    label: "Customer Type"
+                    is_required: True
+                    is_user_input: False
+            outputs:
+                "isVerified": boolean
+                    description: "A boolean value that indicates whether the customer is verified."
+                    label: "Verified"
+                    is_displayable: False
+                    filter_from_agent: True
+                "customerId": string
+                    description: "The Salesforce user ID or contact ID."
+                    label: "Customer Id"
+                    is_displayable: False
+                    filter_from_agent: True
+                "customerType": string
+                    description: "Stores Type of ID"
+                    label: "Customer Type"
+                    is_displayable: False
+                    filter_from_agent: True
+                "messageAfterVerification": string
+                    description: "A confirmation message to display to the user after successful verification."
+                    label: "Message After Verification"
+                    is_displayable: True
+                    filter_from_agent: False
+
+subagent platform_faq:
+    label: "Platform FAQ"
+    description: "Answers general questions about cancellation policies, booking procedures, and platform rules using Knowledge articles. No authentication required."
+
+    reasoning:
+        instructions: ->
+            | Answer the diner's general question about platform policies, booking procedures, or cancellation rules.
+              MANDATORY: Your very first action MUST be search_knowledge. Do not compose any response, do not call go_to_agent_router, do not escalate — call search_knowledge FIRST, every single time.
+              Step 1 — Call search_knowledge immediately with a query derived from the diner's question.
+              Step 2 — Read the article content returned and compose your answer from it. Present it directly in your response.
+              Step 3 — After answering, ask: "Is there anything else I can help you with today?" If yes, use go_to_agent_router. If no, close warmly.
+              Data categories in scope: Cancellation Policy, Booking FAQ, Accessibility, Restaurant Policies.
+              ESCALATION RULE: Do NOT use escalate_to_human unless (a) the diner explicitly says they want to speak with a human, OR (b) you have called search_knowledge and it returned no matching article.
+              FORBIDDEN: Do not call go_to_agent_router as your first action. If you are about to call go_to_agent_router without having called search_knowledge first, stop and call search_knowledge instead.
+              NEVER answer policy questions from memory.
+              Do NOT answer questions outside the scope of dining platform policies.
+        actions:
+            search_knowledge: @actions.search_knowledge
+                description: "STEP 1 — MANDATORY FIRST ACTION. Call this immediately every time you enter this subagent. You MUST call search_knowledge before composing any response text."
+                with searchQuery = ...
+                with dataCategory = ...
+            escalate_to_human: @utils.transition to @subagent.escalation
+                description: "Only after search_knowledge returned no results AND the diner still needs help."
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+                description: "Only after search_knowledge has returned results AND you have composed your answer."
+
+    actions:
+        search_knowledge:
+            description: "Einstein Search Grounding on Salesforce Knowledge, scoped to platform FAQ data categories"
+            target: "apex://SearchKnowledgeAction"
+            inputs:
+                searchQuery: string
+                    description: "The search query derived from the diner's question"
+                    is_required: True
+                dataCategory: string
+                    description: "Knowledge data category scope: CancellationPolicy, BookingFAQ, Accessibility, RestaurantPolicies"
+            outputs:
+                articleTitle: string
+                articleContent: string
+                articleFound: object
+                    complex_data_type_name: "lightning__booleanType"
+
+subagent booking_support:
+    label: "Booking Support"
+    description: "Helps diners make new table reservations on the platform. Collects restaurant, date, time, and party size, then creates the reservation."
+
+    reasoning:
+        instructions: ->
+            | Help the diner book a new table at a restaurant on the SeatMe platform.
+
+              Collect the following before creating the reservation:
+              - Restaurant name
+              - Desired date (YYYY-MM-DD)
+              - Desired time (HH:MM)
+              - Party size
+
+              Once you have these details, use {!@actions.collect_booking_details} to save them, then confirm the details with the diner.
+
+              After the diner confirms, use {!@actions.create_reservation} to complete the booking.
+
+            if @variables.restaurant_name_context != "" and @variables.reservation_date != "" and @variables.reservation_time != "" and @variables.party_size != "":
+                | Booking details:
+                  - Restaurant: {!@variables.restaurant_name_context}
+                  - Date: {!@variables.reservation_date}
+                  - Time: {!@variables.reservation_time}
+                  - Party size: {!@variables.party_size}
+
+        actions:
+            collect_booking_details: @utils.setVariables
+                description: "Save the restaurant name, date, time, and party size from the conversation"
+                with restaurant_name_context=...
+                with reservation_date=...
+                with reservation_time=...
+                with party_size=...
+            create_reservation: @actions.create_reservation
+                description: "Create the reservation once all booking details are collected and confirmed by the diner"
+                available when @variables.restaurant_name_context != "" and @variables.reservation_date != "" and @variables.reservation_time != "" and @variables.party_size != ""
+                with contactId = @variables.ContactId
+                with restaurantName = @variables.restaurant_name_context
+                with reservationDate = @variables.reservation_date
+                with reservationTime = @variables.reservation_time
+                with partySize = @variables.party_size
+                with specialRequests = ...
+            go_to_restaurant_info: @utils.transition to @subagent.restaurant_info
+                description: "Browse restaurant options before booking"
+            go_to_verification: @utils.transition to @subagent.ServiceCustomerVerification
+                description: "Verify identity — required before creating a reservation"
+                available when @variables.ContactId == "" and @variables.isVerified == False
+            go_to_escalation: @utils.transition to @subagent.escalation
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+    actions:
+        create_reservation:
+            description: "Creates a new reservation record for the authenticated diner"
+            target: "apex://CreateReservationAction"
+            require_user_confirmation: True
+            inputs:
+                contactId: string
+                    description: "The Salesforce Contact ID of the authenticated diner"
+                    is_required: True
+                restaurantName: string
+                    description: "The name of the restaurant to book"
+                    is_required: True
+                reservationDate: object
+                    complex_data_type_name: "lightning__dateType"
+                    description: "Desired reservation date in YYYY-MM-DD format"
+                    is_required: True
+                reservationTime: string
+                    description: "Desired reservation time in HH:MM 24h format"
+                    is_required: True
+                partySize: object
+                    complex_data_type_name: "lightning__integerType"
+                    description: "Number of guests"
+                    is_required: True
+                specialRequests: string
+                    description: "Optional dietary notes or special requests"
+            outputs:
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                bookingReference: string
+                restaurantName: string
+                reservationDate: string
+                reservationTime: string
+                partySize: object
+                    complex_data_type_name: "lightning__integerType"
+                message: string
+
+subagent restaurant_info:
+    label: "Restaurant Info"
+    description: "Provides restaurant information including hours, location, cuisine type, menu highlights, accessibility, and parking. No authentication required."
+
+    reasoning:
+        instructions: ->
+            | Help the diner find restaurant information on the SeatMe platform.
+
+              Use {!@actions.search_restaurant} to look up restaurant details.
+
+              For discovery or browse queries (city-based, "show me restaurants", cuisine browsing):
+              Search with the cuisine keyword or a broad term like "restaurant" to surface available options.
+
+              For specific queries (diner names a restaurant):
+              Search by that name.
+
+              Present results clearly: name, cuisine, hours, price range, dress code, accessibility features.
+
+              If no results are returned, explain that SeatMe has a curated selection and invite the diner to search by cuisine type (Italian, Japanese, etc.) or a specific restaurant name.
+
+              If the diner wants to book, use {!@actions.go_to_booking_support}.
+              If the diner asks about real-time availability for a specific date/time, note that availability is confirmed at booking and offer to start a reservation.
+
+        actions:
+            search_restaurant: @actions.search_restaurant
+                with restaurantNames = ...
+            go_to_booking_support: @utils.transition to @subagent.booking_support
+                description: "Book a table at one of the restaurants shown"
+            go_to_platform_faq: @utils.transition to @subagent.platform_faq
+                description: "Answer policy or how-to questions about the platform"
+            go_to_escalation: @utils.transition to @subagent.escalation
+                description: "Connect with a human agent"
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+    actions:
+        search_restaurant:
+            description: "Looks up a restaurant by name and returns its details"
+            target: "apex://GetRestaurantInfoAction"
+            inputs:
+                restaurantNames: string
+                    description: "Restaurant name or partial name to look up"
+                    is_required: True
+            outputs:
+                name: string
+                cuisineType: string
+                operatingHours: string
+                cancellationPolicy: string
+                priceRange: string
+                dressCode: string
+                accessibilityInfo: string
+                maxPartySize: object
+                    complex_data_type_name: "lightning__integerType"
+                isActive: object
+                    complex_data_type_name: "lightning__booleanType"
+
+subagent reservation_support:
+    label: "Reservation Support"
+    description: "Handles viewing and modifying upcoming reservations for authenticated diners. Covers listing reservations, changing date/time/party size, and updating special requests."
+
+    reasoning:
+        instructions: ->
+            if @variables.reservations_loaded == False:
+                run @actions.list_reservations
+                    with contactId = @variables.ContactId
+                    set @variables.reservation_summaries = @outputs.reservationSummaries
+                    set @variables.reservations_loaded = True
+
+            if @variables.reservations_loaded == True and @variables.reservation_summaries != "":
+                | Here are your upcoming reservations:
+                  {!@variables.reservation_summaries}
+            if @variables.reservations_loaded == True and @variables.reservation_summaries == "":
+                | You don't have any upcoming reservations on your account.
+
+            | To modify a reservation, provide the booking reference and the changes you'd like — date, time, party size, or special requests. Use {!@actions.modify_reservation} once you have the details.
+
+              If the diner asks to cancel, use {!@actions.go_to_cancellation}.
+              Never ask the diner for their Contact ID or internal record IDs.
+
+        actions:
+            list_reservations: @actions.list_reservations
+                with contactId = @variables.ContactId
+                set @variables.reservation_summaries = @outputs.reservationSummaries
+                set @variables.reservations_loaded = True
+                available when @variables.reservations_loaded == False
+            modify_reservation: @actions.modify_reservation
+                with bookingReference = ...
+                with newDate = ...
+                with newTime = ...
+                with newPartySize = ...
+            go_to_cancellation: @utils.transition to @subagent.cancellation_support
+                description: "Cancel a reservation instead of modifying it"
+            go_to_escalation: @utils.transition to @subagent.escalation
+                description: "Connect with a human agent"
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+    actions:
+        list_reservations:
+            description: "Returns a pipe-delimited summary of upcoming reservations for the authenticated diner"
+            target: "apex://GetReservationsForContactAction"
+            inputs:
+                contactId: string
+                    description: "The Salesforce Contact ID of the authenticated diner"
+                    is_required: True
+            outputs:
+                reservationSummaries: string
+                    description: "Pipe-delimited list of reservation summaries (BookingRef|Restaurant|Date|Time|PartySize|Status)"
+                totalCount: object
+                    complex_data_type_name: "lightning__integerType"
+
+        modify_reservation:
+            description: "Modifies an existing reservation — updates date, time, party size, or special requests"
+            target: "apex://ModifyReservationAction"
+            require_user_confirmation: True
+            inputs:
+                bookingReference: string
+                    description: "The booking reference number for the reservation to modify"
+                    is_required: True
+                newDate: string
+                    description: "New reservation date in YYYY-MM-DD format (leave blank to keep current)"
+                newTime: string
+                    description: "New reservation time in HH:MM 24h format (leave blank to keep current)"
+                newPartySize: object
+                    complex_data_type_name: "lightning__integerType"
+                    description: "New party size (leave blank to keep current)"
+            outputs:
+                bookingReference: string
+                status: string
+                restaurantName: string
+                dinerName: string
+                reservationDate: string
+                reservationTime: string
+                partySize: object
+                    complex_data_type_name: "lightning__integerType"
+                specialRequests: string
+
+subagent cancellation_support:
+    label: "Cancellation Support"
+    description: "Handles reservation cancellations for authenticated diners. Checks cancellation policy, confirms diner intent, and processes the cancellation."
+
+    reasoning:
+        instructions: ->
+            | You help authenticated diners cancel a reservation.
+              Step 1 — If {!@variables.reservations_loaded} is False, call list_reservations to show the diner their upcoming reservations. Set {!@variables.reservations_loaded} = True.
+              Step 2 — Confirm which reservation to cancel. Ask for the booking reference if not already known.
+              Step 3 — Inform the diner of any applicable cancellation fees by referencing Knowledge policy if available.
+              Step 4 — Ask the diner to confirm cancellation explicitly before calling cancel_reservation.
+              Step 5 — Call cancel_reservation with the confirmed reservation ID.
+              Step 6 — Confirm cancellation and ask if anything else is needed.
+              If the diner asks to modify instead of cancel, transition to reservation_support.
+              If the diner wants human help, transition to escalation.
+        actions:
+            list_reservations: @actions.list_reservations
+                with contactId = @variables.ContactId
+                set @variables.reservation_summaries = @outputs.reservationSummaries
+                set @variables.reservations_loaded = True
+                available when @variables.reservations_loaded == False
+            cancel_reservation: @actions.cancel_reservation
+                with bookingReference = ...
+                with contactId = @variables.ContactId
+                with cancellationReason = ...
+            go_to_reservation_support: @utils.transition to @subagent.reservation_support
+            go_to_escalation: @utils.transition to @subagent.escalation
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+    actions:
+        list_reservations:
+            description: "Returns upcoming reservations for the authenticated diner"
+            target: "apex://GetReservationsForContactAction"
+            inputs:
+                contactId: string
+                    description: "The Salesforce Contact ID of the authenticated diner"
+                    is_required: True
+            outputs:
+                reservationSummaries: string
+                totalCount: object
+                    complex_data_type_name: "lightning__integerType"
+
+        cancel_reservation:
+            description: "Cancels an existing reservation after diner confirms intent"
+            target: "apex://CancelReservationAction"
+            require_user_confirmation: True
+            inputs:
+                bookingReference: string
+                    description: "The booking reference number for the reservation to cancel"
+                    is_required: True
+                contactId: string
+                    description: "The Salesforce Contact ID of the authenticated diner — verifies ownership"
+                    is_required: True
+                cancellationReason: string
+                    description: "Optional reason for cancellation"
+            outputs:
+                output: string
+
+subagent escalation:
+    label: "Escalation"
+    description: "Creates a support Case and transfers the diner to a live human agent via Omni-Channel warm transfer."
+
+    reasoning:
+        instructions: ->
+            | You handle escalation to a live human agent.
+              Step 1 — Acknowledge the diner empathetically and let them know you are connecting them with a human agent.
+              Step 2 — Call create_escalation_case to log the issue as a Case. Store the returned Case ID in {!@variables.case_id}.
+              Step 3 — Use escalate_to_human to perform the Omni-Channel warm transfer.
+              Do NOT attempt to resolve the diner's issue here — your only job is to acknowledge, log, and transfer.
+              Never ask the diner for their Contact ID or internal record IDs.
+        actions:
+            create_escalation_case: @actions.create_escalation_case
+                with contactId = @variables.ContactId
+                with issueSummary = ...
+                set @variables.case_id = @outputs.caseId
+            escalate_to_human: @utils.escalate
+
+    actions:
+        create_escalation_case:
+            description: "Creates a Case record to log the escalation before warm transfer"
+            target: "apex://CreateEscalationCaseAction"
+            inputs:
+                contactId: string
+                    description: "The Salesforce Contact ID of the diner (may be empty for unauthenticated users)"
+                issueSummary: string
+                    description: "Brief summary of the diner's issue for the human agent"
+                    is_required: True
+            outputs:
+                caseId: string
+                caseNumber: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
+
+subagent off_topic:
+    label: "Off Topic"
+    description: "Handles requests that are outside the scope of the SeatMe dining platform — competitor platforms, loyalty upgrades, non-dining topics, etc."
+
+    reasoning:
+        instructions: ->
+            | The diner has asked about something outside the scope of SeatMe's dining platform.
+              Politely explain that you can only assist with dining-related topics: restaurant information, reservations, platform policies, and account management on the SeatMe platform.
+              Do not answer the off-topic question. Do not speculate or provide information about competitor platforms.
+              Ask if there is something dining-related you can help with. If yes, use go_to_agent_router. If no, close warmly.
+        actions:
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+subagent ambiguous_question:
+    label: "Ambiguous Question"
+    description: "Asks the diner to clarify their request when the intent is unclear."
+
+    reasoning:
+        instructions: ->
+            | The diner's intent was unclear. Ask a focused clarifying question to understand what they need.
+              Keep clarification to one question — do not list all possible options.
+              Once the diner clarifies, use go_to_agent_router to route to the correct subagent.
+              If the diner still cannot clarify after two attempts, offer to connect them with a human agent via go_to_escalation.
+        actions:
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+            go_to_escalation: @utils.transition to @subagent.escalation
+
+subagent CaseManagement:
+    label: "Case Management"
+    description: "Allows verified diners to view or update their existing support Cases. Requires isVerified == True."
+
+    reasoning:
+        instructions: ->
+            | You help verified diners manage their support cases.
+              Step 1 — Call get_diner_cases to retrieve open or recent cases for the diner.
+              Step 2 — Present the cases clearly: case number, subject, status, and last updated date.
+              Step 3 — If the diner wants to add a comment or update a case, call update_case.
+              Step 4 — Ask if anything else is needed. If yes, use go_to_agent_router. If no, close warmly.
+              If the diner wants to escalate to a human agent, transition to escalation.
+              SECURITY: Only access cases belonging to {!@variables.VerifiedCustomerId} or {!@variables.ContactId}. Never allow cross-user access.
+        actions:
+            get_diner_cases: @actions.get_diner_cases
+                with contactId = @variables.VerifiedCustomerId
+            update_case: @actions.update_case
+                with caseId = ...
+                with comment = ...
+            go_to_escalation: @utils.transition to @subagent.escalation
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+    actions:
+        get_diner_cases:
+            description: "Returns open and recent support cases for the verified diner"
+            target: "apex://GetDinerCasesAction"
+            inputs:
+                contactId: string
+                    description: "The verified Salesforce Contact ID"
+                    is_required: True
+            outputs:
+                caseSummaries: string
+                    description: "Pipe-delimited list of cases (CaseId|CaseNumber|Subject|Status|LastModified)"
+                caseCount: object
+                    complex_data_type_name: "lightning__integerType"
+                errorMessage: string
+
+        update_case:
+            description: "Adds a comment to an existing Case"
+            target: "apex://UpdateCaseAction"
+            require_user_confirmation: True
+            inputs:
+                caseId: string
+                    description: "The Salesforce Case record ID to update"
+                    is_required: True
+                comment: string
+                    description: "The comment or update text from the diner"
+                    is_required: True
+            outputs:
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                confirmationMessage: string
+                errorMessage: string
+
+subagent AccountManagement:
+    label: "Account Management"
+    description: "Allows verified diners to update contact information or request a password reset. Requires isVerified == True."
+
+    reasoning:
+        instructions: ->
+            | You help verified diners manage their account details.
+              Supported actions: update email address, update phone number, update mailing address, request a password reset.
+              Step 1 — Ask the diner what they want to update.
+              Step 2 — Collect the new value.
+              Step 3 — Call update_contact_profile with the field and new value.
+              Step 4 — Confirm the update and ask if anything else is needed.
+              SECURITY: Only update the account of {!@variables.VerifiedCustomerId}. Never allow a verified user to update another person's account.
+              For password resets, call send_password_reset — do not attempt to set a new password directly.
+        actions:
+            update_contact_profile: @actions.update_contact_profile
+                with contactId = @variables.VerifiedCustomerId
+                with fieldName = ...
+                with newValue = ...
+            send_password_reset: @actions.send_password_reset
+                with contactId = @variables.VerifiedCustomerId
+            go_to_escalation: @utils.transition to @subagent.escalation
+            go_to_agent_router: @utils.transition to @subagent.agent_router
+
+    actions:
+        update_contact_profile:
+            description: "Updates a single field on the verified diner's Contact record"
+            target: "apex://UpdateContactProfileAction"
+            require_user_confirmation: True
+            inputs:
+                contactId: string
+                    description: "The verified Salesforce Contact ID"
+                    is_required: True
+                fieldName: string
+                    description: "API field name to update (Email, Phone, MailingStreet, etc.)"
+                    is_required: True
+                newValue: string
+                    description: "The new value for the specified field"
+                    is_required: True
+            outputs:
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                confirmationMessage: string
+                errorMessage: string
+
+        send_password_reset:
+            description: "Sends a password reset email to the verified diner"
+            target: "apex://SendPasswordResetAction"
+            require_user_confirmation: True
+            inputs:
+                contactId: string
+                    description: "The verified Salesforce Contact ID"
+                    is_required: True
+            outputs:
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                confirmationMessage: string
+                errorMessage: string
+
+connection messaging:
+    escalation_message: "I'm connecting you with a member of our support team now. They'll have the full context of our conversation."
+    outbound_route_type: "OmniChannelFlow"
+    outbound_route_name: "flow://Aria3_Escalation_Flow"

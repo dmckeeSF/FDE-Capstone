@@ -136,6 +136,23 @@ Aria is configured as an **Agentforce Service Agent** (`agent_type: AgentforceSe
 
 ---
 
+## Restaurant Menu — RAG via Data Cloud (Planned)
+
+Aria does not currently have menu data. When a diner asks to see a menu, Aria correctly responds that menu details are not available and redirects to reservations or restaurant info.
+
+**Planned implementation:**
+- Ingest restaurant menu PDFs into Data Cloud using the Data Cloud Ingestion API or file-based ingestion
+- Surface menu content via Einstein Search Grounding (RAG) scoped to a `RestaurantMenus` Knowledge or Data Cloud data category
+- Add a `search_menu` action to `restaurant_info` subagent:
+  - Input: `restaurantName` (string), `menuQuery` (string, optional)
+  - Output: `menuContent` (string), `menuFound` (boolean)
+- Gate `search_menu` as available only when the diner explicitly asks about menu, food items, or dishes
+- **Do not attempt to answer menu questions from memory** — always run the action first
+
+**Phase:** Phase 1 scope (read-only Data Cloud grounding, no write-back required)
+
+---
+
 ## Data Cloud Ingestion Pipeline
 
 Loyalty data flows: **S3 → Data Cloud Ingestion API → LPR_LoyaltyMember_81F1B696__dlm DMO → Apex SOQL**
