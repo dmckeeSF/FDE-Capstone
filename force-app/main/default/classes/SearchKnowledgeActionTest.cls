@@ -18,6 +18,11 @@ private class SearchKnowledgeActionTest {
 
     @IsTest
     static void testSearchFindsArticle() {
+        // SOSL returns empty in test context without setFixedSearchResults.
+        // Must use the Online (published) version ID — draft ID won't match Online SOSL.
+        Knowledge__kav art = [SELECT Id FROM Knowledge__kav WHERE PublishStatus = 'Online' LIMIT 1];
+        Test.setFixedSearchResults(new List<Id>{ art.Id });
+
         SearchKnowledgeAction.SearchRequest req = new SearchKnowledgeAction.SearchRequest();
         req.searchQuery = 'cancellation';
         List<SearchKnowledgeAction.SearchResult> results = SearchKnowledgeAction.searchKnowledge(

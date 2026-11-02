@@ -7,7 +7,12 @@ system:
 config:
     agent_label: "Aria"
     developer_name: "SeatMe"
+    agent_template: "SvcCopilotTmpl__AgentforceServiceAgent"
     description: "Intelligent Diner Support Agent — handles reservation modifications, cancellations, restaurant information, and escalation to human agents via Omni-Channel."
+    runtime:
+        streaming: True
+        citation: False
+        reset_to_initial_node: False
 
 access:
     default_agent_user: "aria_agent@00djv000005aree.ext"
@@ -89,6 +94,12 @@ variables:
     party_size: mutable string = ""
         description: "Number of guests for the reservation, collected from the diner"
         visibility: "Internal"
+    booking_step: mutable number = 1
+        description: "Tracks booking collection progress — >1 locks the router back into booking_support mid-flow"
+        visibility: "Internal"
+    cancellation_step: mutable number = 1
+        description: "Tracks cancellation flow progress — >1 locks the router back into cancellation_support mid-flow"
+        visibility: "Internal"
 
 language:
     additional_locales: "en_GB"
@@ -104,6 +115,12 @@ start_agent agent_router:
     label: "Agent Router"
     description: "Welcome the diner and route to the correct subagent based on their dining support need"
 
+    before_reasoning:
+        if @variables.booking_step > 1:
+            transition to @subagent.booking_support
+        if @variables.cancellation_step > 1:
+            transition to @subagent.cancellation_support
+
     reasoning:
         instructions: ->
             if @variables.ContactId != "" and @variables.first_name == "":
@@ -111,7 +128,6 @@ start_agent agent_router:
                     with contactId = @variables.ContactId
                     set @variables.first_name = @outputs.firstName
                     set @variables.contact_email = @outputs.email
-                    set @variables.loyalty_tier = @outputs.loyaltyTier
             if @variables.contact_email != "" and @variables.loyalty_tier == "":
                 run @actions.get_loyalty_tier
                     with contactEmail = @variables.contact_email
@@ -123,11 +139,10 @@ start_agent agent_router:
             | Select the tool that best matches the user's message and conversation history. If it's unclear, make your best guess.
         actions:
             get_contact_profile: @actions.get_contact_profile
-                description: "Load the authenticated diner's first name, email, and loyalty tier at session start"
+                description: "Load the authenticated diner's first name and email at session start"
                 with contactId = @variables.ContactId
                 set @variables.first_name = @outputs.firstName
                 set @variables.contact_email = @outputs.email
-                set @variables.loyalty_tier = @outputs.loyaltyTier
                 available when @variables.ContactId != "" and @variables.first_name == ""
             get_loyalty_tier: @actions.get_loyalty_tier
                 description: "Fetch the diner's loyalty tier from the external loyalty program"
@@ -359,34 +374,26 @@ subagent booking_support:
     label: "Booking Support"
     description: "Helps diners make new table reservations on the platform. Collects restaurant, date, time, and party size, then creates the reservation."
 
+    before_reasoning:
+        set @variables.booking_step = 2
+
     reasoning:
         instructions: ->
             | Help the diner book a new table at a restaurant on the SeatMe platform.
 
-              Collect the following before creating the reservation:
+              Collect the following, one at a time if not already provided:
               - Restaurant name
-              - Desired date (YYYY-MM-DD)
-              - Desired time (HH:MM)
+              - Desired date (ask in plain English; convert to YYYY-MM-DD internally)
+              - Desired time (ask in plain English; convert to HH:MM 24-hour internally)
               - Party size
 
-              Once you have these details, use {!@actions.collect_booking_details} to save them, then confirm the details with the diner.
+              Once you have all four, call {!@actions.create_reservation} immediately.
+              The platform will show the diner a confirmation card with Yes/No buttons — do NOT ask them to confirm again in chat.
+              Do not say "shall I confirm?" or "does that look right?" — the confirmation card handles it.
 
-              After the diner confirms, use {!@actions.create_reservation} to complete the booking.
-
-            if @variables.restaurant_name_context != "" and @variables.reservation_date != "" and @variables.reservation_time != "" and @variables.party_size != "":
-                | Booking details:
-                  - Restaurant: {!@variables.restaurant_name_context}
-                  - Date: {!@variables.reservation_date}
-                  - Time: {!@variables.reservation_time}
-                  - Party size: {!@variables.party_size}
+              After a successful booking OR if the diner wants to cancel/stop the booking, call {!@actions.reset_booking_state} then {!@actions.go_to_agent_router}.
 
         actions:
-            collect_booking_details: @utils.setVariables
-                description: "Save the restaurant name, date, time, and party size from the conversation"
-                with restaurant_name_context=...
-                with reservation_date=...
-                with reservation_time=...
-                with party_size=...
             create_reservation: @actions.create_reservation
                 description: "Create the reservation once all booking details are collected and confirmed by the diner"
                 available when @variables.restaurant_name_context != "" and @variables.reservation_date != "" and @variables.reservation_time != "" and @variables.party_size != ""
@@ -396,6 +403,13 @@ subagent booking_support:
                 with reservationTime = @variables.reservation_time
                 with partySize = @variables.party_size
                 with specialRequests = ...
+            reset_booking_state: @utils.setVariables
+                description: "Reset booking variables when the flow completes successfully or the diner cancels mid-booking"
+                with booking_step = 1
+                with restaurant_name_context = ""
+                with reservation_date = ""
+                with reservation_time = ""
+                with party_size = ""
             go_to_restaurant_info: @utils.transition to @subagent.restaurant_info
                 description: "Browse restaurant options before booking"
             go_to_verification: @utils.transition to @subagent.ServiceCustomerVerification
@@ -409,10 +423,13 @@ subagent booking_support:
             description: "Creates a new reservation record for the authenticated diner"
             target: "apex://CreateReservationAction"
             require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating your reservation..."
             inputs:
                 contactId: string
                     description: "The Salesforce Contact ID of the authenticated diner"
                     is_required: True
+                    is_user_input: False
                 restaurantName: string
                     description: "The name of the restaurant to book"
                     is_required: True
@@ -448,24 +465,33 @@ subagent restaurant_info:
         instructions: ->
             | Help the diner find restaurant information on the SeatMe platform.
 
-              Use {!@actions.search_restaurant} to look up restaurant details.
-
-              For discovery or browse queries (city-based, "show me restaurants", cuisine browsing):
-              Search with the cuisine keyword or a broad term like "restaurant" to surface available options.
-
-              For specific queries (diner names a restaurant):
-              Search by that name.
+              Use the right action based on what the diner is asking:
+              - Diner asks about restaurants **in a city or area** ("restaurants in Seattle", "what's near Bellevue"):
+                Use {!@actions.get_restaurants_by_location} with the city name.
+              - Diner asks about restaurants **by cuisine** ("Italian restaurants", "any good sushi spots", "I want Thai food"):
+                Use {!@actions.get_restaurants_by_cuisine} with the cuisine keyword.
+              - Diner names a **specific restaurant** ("tell me about The Capital Grille", "hours for Sakura"):
+                Use {!@actions.search_restaurant} with the restaurant name.
+              - If the query is ambiguous, try {!@actions.get_restaurants_by_cuisine} first, then fall back to {!@actions.search_restaurant}.
 
               Present results clearly: name, cuisine, hours, price range, dress code, accessibility features.
-
-              If no results are returned, explain that SeatMe has a curated selection and invite the diner to search by cuisine type (Italian, Japanese, etc.) or a specific restaurant name.
+              If a search returns no results, invite the diner to try a city name, cuisine type, or specific restaurant name.
+              Never name a restaurant not returned by an action.
 
               If the diner wants to book, use {!@actions.go_to_booking_support}.
               If the diner asks about real-time availability for a specific date/time, note that availability is confirmed at booking and offer to start a reservation.
 
         actions:
             search_restaurant: @actions.search_restaurant
+                description: "Look up a specific restaurant by name — use when the diner mentions a restaurant by name"
                 with restaurantNames = ...
+            get_restaurants_by_location: @actions.get_restaurants_by_location
+                description: "Find all restaurants in a city or area — use for city/location queries"
+                with city = ...
+                with state = ...
+            get_restaurants_by_cuisine: @actions.get_restaurants_by_cuisine
+                description: "Find all restaurants by cuisine type — use for cuisine or food-preference queries"
+                with cuisineType = ...
             go_to_booking_support: @utils.transition to @subagent.booking_support
                 description: "Book a table at one of the restaurants shown"
             go_to_platform_faq: @utils.transition to @subagent.platform_faq
@@ -494,6 +520,40 @@ subagent restaurant_info:
                     complex_data_type_name: "lightning__integerType"
                 isActive: object
                     complex_data_type_name: "lightning__booleanType"
+
+        get_restaurants_by_location:
+            description: "Returns all active SeatMe restaurants in a given city"
+            target: "apex://GetRestaurantsByLocationAction"
+            inputs:
+                city: string
+                    description: "City name to search in"
+                    is_required: True
+                state: string
+                    description: "Optional state to narrow results (e.g. WA)"
+            outputs:
+                restaurantList: string
+                restaurantCount: object
+                    complex_data_type_name: "lightning__integerType"
+                citySearched: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
+
+        get_restaurants_by_cuisine:
+            description: "Returns all active SeatMe restaurants matching a cuisine type"
+            target: "apex://GetRestaurantsByCuisineAction"
+            inputs:
+                cuisineType: string
+                    description: "Cuisine type keyword (e.g. Italian, Japanese, Mexican)"
+                    is_required: True
+            outputs:
+                restaurantList: string
+                restaurantCount: object
+                    complex_data_type_name: "lightning__integerType"
+                cuisineSearched: string
+                isSuccess: object
+                    complex_data_type_name: "lightning__booleanType"
+                errorMessage: string
 
 subagent reservation_support:
     label: "Reservation Support"
@@ -539,10 +599,13 @@ subagent reservation_support:
         list_reservations:
             description: "Returns a pipe-delimited summary of upcoming reservations for the authenticated diner"
             target: "apex://GetReservationsForContactAction"
+            include_in_progress_indicator: True
+            progress_indicator_message: "Loading your reservations..."
             inputs:
                 contactId: string
                     description: "The Salesforce Contact ID of the authenticated diner"
                     is_required: True
+                    is_user_input: False
             outputs:
                 reservationSummaries: string
                     description: "Pipe-delimited list of reservation summaries (BookingRef|Restaurant|Date|Time|PartySize|Status)"
@@ -553,6 +616,8 @@ subagent reservation_support:
             description: "Modifies an existing reservation — updates date, time, party size, or special requests"
             target: "apex://ModifyReservationAction"
             require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating your reservation..."
             inputs:
                 bookingReference: string
                     description: "The booking reference number for the reservation to modify"
@@ -579,17 +644,25 @@ subagent cancellation_support:
     label: "Cancellation Support"
     description: "Handles reservation cancellations for authenticated diners. Checks cancellation policy, confirms diner intent, and processes the cancellation."
 
+    before_reasoning:
+        set @variables.cancellation_step = 2
+
     reasoning:
         instructions: ->
             | You help authenticated diners cancel a reservation.
               Step 1 — If {!@variables.reservations_loaded} is False, call list_reservations to show the diner their upcoming reservations. Set {!@variables.reservations_loaded} = True.
               Step 2 — Confirm which reservation to cancel. Ask for the booking reference if not already known.
-              Step 3 — Inform the diner of any applicable cancellation fees by referencing Knowledge policy if available.
-              Step 4 — Ask the diner to confirm cancellation explicitly before calling cancel_reservation.
-              Step 5 — Call cancel_reservation with the confirmed reservation ID.
+              Step 3 — Party size policy check:
+                  If the reservation party size is greater than 4 AND {!@variables.loyalty_tier} is not "Platinum":
+                      Inform the diner: "I can see this reservation is for a party larger than 4 guests. Per our cancellation policy, large-party cancellations may be subject to additional fees or require special handling. You're welcome to proceed, or I can connect you with a member of our team."
+                      Let the diner decide — offer to proceed with cancellation OR escalate to a human. Only escalate if the diner explicitly asks for human assistance.
+                  If the diner is Platinum or party size is 4 or fewer, proceed without the policy disclosure.
+              Step 4 — Inform the diner of the standard 24-hour cancellation fee policy.
+              Step 5 — Call cancel_reservation once the diner confirms.
               Step 6 — Confirm cancellation and ask if anything else is needed.
               If the diner asks to modify instead of cancel, transition to reservation_support.
               If the diner wants human help, transition to escalation.
+              After a successful cancellation or if the diner stops the flow, call {!@actions.reset_cancellation_state} then {!@actions.go_to_agent_router}.
         actions:
             list_reservations: @actions.list_reservations
                 with contactId = @variables.ContactId
@@ -600,6 +673,9 @@ subagent cancellation_support:
                 with bookingReference = ...
                 with contactId = @variables.ContactId
                 with cancellationReason = ...
+            reset_cancellation_state: @utils.setVariables
+                description: "Reset cancellation state when the flow completes or the diner stops"
+                with cancellation_step = 1
             go_to_reservation_support: @utils.transition to @subagent.reservation_support
             go_to_escalation: @utils.transition to @subagent.escalation
             go_to_agent_router: @utils.transition to @subagent.agent_router
@@ -608,10 +684,13 @@ subagent cancellation_support:
         list_reservations:
             description: "Returns upcoming reservations for the authenticated diner"
             target: "apex://GetReservationsForContactAction"
+            include_in_progress_indicator: True
+            progress_indicator_message: "Loading your reservations..."
             inputs:
                 contactId: string
                     description: "The Salesforce Contact ID of the authenticated diner"
                     is_required: True
+                    is_user_input: False
             outputs:
                 reservationSummaries: string
                 totalCount: object
@@ -621,6 +700,8 @@ subagent cancellation_support:
             description: "Cancels an existing reservation after diner confirms intent"
             target: "apex://CancelReservationAction"
             require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Cancelling your reservation..."
             inputs:
                 bookingReference: string
                     description: "The booking reference number for the reservation to cancel"
@@ -628,6 +709,7 @@ subagent cancellation_support:
                 contactId: string
                     description: "The Salesforce Contact ID of the authenticated diner — verifies ownership"
                     is_required: True
+                    is_user_input: False
                 cancellationReason: string
                     description: "Optional reason for cancellation"
             outputs:
@@ -656,9 +738,12 @@ subagent escalation:
         create_escalation_case:
             description: "Creates a Case record to log the escalation before warm transfer"
             target: "apex://CreateEscalationCaseAction"
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating your support case..."
             inputs:
                 contactId: string
                     description: "The Salesforce Contact ID of the diner (may be empty for unauthenticated users)"
+                    is_user_input: False
                 issueSummary: string
                     description: "Brief summary of the diner's issue for the human agent"
                     is_required: True
@@ -722,10 +807,13 @@ subagent CaseManagement:
         get_diner_cases:
             description: "Returns open and recent support cases for the verified diner"
             target: "apex://GetDinerCasesAction"
+            include_in_progress_indicator: True
+            progress_indicator_message: "Loading your cases..."
             inputs:
                 contactId: string
                     description: "The verified Salesforce Contact ID"
                     is_required: True
+                    is_user_input: False
             outputs:
                 caseSummaries: string
                     description: "Pipe-delimited list of cases (CaseId|CaseNumber|Subject|Status|LastModified)"
@@ -737,6 +825,8 @@ subagent CaseManagement:
             description: "Adds a comment to an existing Case"
             target: "apex://UpdateCaseAction"
             require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating your case..."
             inputs:
                 caseId: string
                     description: "The Salesforce Case record ID to update"
@@ -779,10 +869,13 @@ subagent AccountManagement:
             description: "Updates a single field on the verified diner's Contact record"
             target: "apex://UpdateContactProfileAction"
             require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating your profile..."
             inputs:
                 contactId: string
                     description: "The verified Salesforce Contact ID"
                     is_required: True
+                    is_user_input: False
                 fieldName: string
                     description: "API field name to update (Email, Phone, MailingStreet, etc.)"
                     is_required: True
@@ -799,10 +892,13 @@ subagent AccountManagement:
             description: "Sends a password reset email to the verified diner"
             target: "apex://SendPasswordResetAction"
             require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending password reset email..."
             inputs:
                 contactId: string
                     description: "The verified Salesforce Contact ID"
                     is_required: True
+                    is_user_input: False
             outputs:
                 isSuccess: object
                     complex_data_type_name: "lightning__booleanType"

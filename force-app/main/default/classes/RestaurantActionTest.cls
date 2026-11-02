@@ -96,18 +96,13 @@ private class RestaurantActionTest {
     @IsTest
     static void testGetRestaurantInfo_notFound() {
         Test.startTest();
-        Boolean threw = false;
-        try {
-            GetRestaurantInfoAction.getRestaurantInfo(
-                new List<String>{ 'ZZZNOMATCH' }
-            );
-        } catch (AuraHandledException ex) {
-            threw = true;
-            System.assert(ex.getMessage() != null, 'Exception message should not be null');
-        }
+        List<GetRestaurantInfoAction.RestaurantDTO> results =
+            GetRestaurantInfoAction.getRestaurantInfo(new List<String>{ 'ZZZNOMATCH' });
         Test.stopTest();
 
-        System.assert(threw, 'AuraHandledException should have been thrown for missing restaurant');
+        System.assertEquals(1, results.size(), 'Should return one DTO even for no match');
+        System.assertEquals(null, results[0].name, 'Name should be null for no match');
+        System.assertEquals(null, results[0].isActive, 'isActive should be null for no match');
     }
 
     // ─── Callout mock ─────────────────────────────────────────────────────────────
