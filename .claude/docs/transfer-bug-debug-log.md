@@ -297,3 +297,16 @@ Flow is now: **Start → Get_Agent (BotDefinition WHERE DeveloperName='Aria3') �
 
 Deployed as id `301jV00000JLVaYQAX`, Aria3 republished + activated as v3.
 
+### Chat Widget Fix — Switch to Enhanced Chat V2 (2026-11-01, Step 12)
+
+**Symptom:** Chat button visible in Experience Builder preview but NOT in live portal as Bob Garcia. Console errors: 404 on bootstrap JS + CSP frame-ancestors violation blocking `my.site.com` from framing `my.salesforce.com`.
+
+**Root cause:** `Aria_3_Embedded_Service` was created as a **Web (v1)** deployment. V1 has known CSP issues in Experience Cloud context — the widget loads assets from `my.salesforce.com` via iframe, which the browser blocks with a frame-ancestors CSP violation.
+
+**Fix:**
+1. Setup → Embedded Service Deployments → Aria_3_Embedded_Service → "Switch to V2" → "Switch & Publish" — deployment now shows **Web (v2)**, published 11/1/2026 4:51 PM
+2. Updated `customerService.json` `clientVersion` from `"WebV1"` → `"WebV2"` to match
+3. Deployed ExperienceBundle, published Aria Dining Portal
+
+**Awaiting:** Live portal test as Bob Garcia — expect chat button to appear.
+

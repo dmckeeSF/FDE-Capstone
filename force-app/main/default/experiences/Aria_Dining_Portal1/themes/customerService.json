@@ -42,10 +42,11 @@
     "regions" : [ {
       "components" : [ {
         "componentAttributes" : {
-          "clientVersion" : "WebV1",
+          "clientVersion" : "WebV2",
           "deploymentName" : "Aria_3_Embedded_Service",
-          "hideChatButtonOnLoad" : "Visible",
+          "hideChatButtonOnLoad" : "Default",
           "isExpSiteAuthMode" : false,
+          "mobileDeploymentName" : "",
           "scrtUrl" : "https://orgfarm-fbbbae0e05.my.salesforce-scrt.com",
           "siteEndpoint" : "https://orgfarm-fbbbae0e05.my.site.com/ESWAria3Embedde1793574339872"
         },
